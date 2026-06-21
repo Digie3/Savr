@@ -5,7 +5,21 @@ function Login() {
 
   function handleLogin(event) {
     event.preventDefault();
-    navigate("/home");
+    const form = new FormData(event.target);
+    const email = form.get("email");
+    const password = form.get("password");
+
+    fetch("http://localhost:4000/login", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ email, password }),
+    })
+      .then((r) => {
+        if (!r.ok) return r.json().then((e) => Promise.reject(e));
+        return r.json();
+      })
+      .then(() => navigate("/home"))
+      .catch((err) => alert(err.error || "Login failed"));
   }
 
   return (
@@ -25,8 +39,8 @@ function Login() {
         <p>Sign in to continue exploring recipes.</p>
 
         <form onSubmit={handleLogin}>
-          <input type="email" placeholder="Enter your email" />
-          <input type="password" placeholder="Enter your password" />
+          <input name="email" type="email" placeholder="Enter your email" />
+          <input name="password" type="password" placeholder="Enter your password" />
           <button type="submit">Login</button>
         </form>
 

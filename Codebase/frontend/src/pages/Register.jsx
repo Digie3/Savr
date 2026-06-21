@@ -5,7 +5,22 @@ function Register() {
 
   function handleRegister(event) {
     event.preventDefault();
-    navigate("/login");
+    const form = new FormData(event.target);
+    const username = form.get("username");
+    const email = form.get("email");
+    const password = form.get("password");
+
+    fetch("http://localhost:4000/register", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ username, email, password }),
+    })
+      .then((r) => {
+        if (!r.ok) return r.json().then((e) => Promise.reject(e));
+        return r.json();
+      })
+      .then(() => navigate("/login"))
+      .catch((err) => alert(err.error || "Registration failed"));
   }
 
   return (
@@ -31,13 +46,12 @@ function Register() {
         <p>Start your food journey with Savr.</p>
 
         <form onSubmit={handleRegister}>
-          <input type="text" placeholder="Username" />
+          <input name="username" type="text" placeholder="Username" />
 
-          <input type="email" placeholder="Email Address" />
+          <input name="email" type="email" placeholder="Email Address" />
 
-          <input type="password" placeholder="Password" />
-          <input type="password" placeholder="Confirm Password" />
-
+          <input name="password" type="password" placeholder="Password" />
+          <input name="confirm" type="password" placeholder="Confirm Password" />
 
           <button type="submit">Register</button>
         </form>
