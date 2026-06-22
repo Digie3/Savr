@@ -5,15 +5,15 @@ function Register() {
 
   function handleRegister(event) {
     event.preventDefault();
+    
     const form = new FormData(event.target);
     const username = form.get("username");
-    const email = form.get("email");
     const password = form.get("password");
 
     fetch("http://localhost:4000/register", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ username, email, password }),
+      body: JSON.stringify({ username, password }),
     })
       .then((r) => {
         if (!r.ok) return r.json().then((e) => Promise.reject(e));
@@ -47,8 +47,6 @@ function Register() {
 
         <form onSubmit={handleRegister}>
           <input name="username" type="text" placeholder="Username" />
-
-          <input name="email" type="email" placeholder="Email Address" />
 
           <input name="password" type="password" placeholder="Password" />
           <input name="confirm" type="password" placeholder="Confirm Password" />

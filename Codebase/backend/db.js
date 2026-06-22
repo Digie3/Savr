@@ -6,7 +6,7 @@ import { promisify } from "util";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.resolve(__dirname, "..", "..", "Database", "main.db");
+const dbPath = path.resolve(__dirname, "..", "..", "Database", "relational_database", "v.2.0", "recipe_social_media.db");
 
 let db;
 
@@ -18,16 +18,7 @@ export async function initDB() {
   db.runAsync = promisify(db.run.bind(db));
   db.getAsync = promisify(db.get.bind(db));
   db.allAsync = promisify(db.all.bind(db));
-
-  await db.runAsync(`
-    CREATE TABLE IF NOT EXISTS users (
-      id INTEGER PRIMARY KEY AUTOINCREMENT,
-      username TEXT NOT NULL UNIQUE,
-      email TEXT NOT NULL UNIQUE,
-      password TEXT NOT NULL
-    )
-  `);
-
+  
   return db;
 }
 
