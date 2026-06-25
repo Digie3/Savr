@@ -3,6 +3,13 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import { initDB, getDB } from "./db.js";
+import {
+  getAnalyticsSummary,
+  getRecentEvents,
+  getTrendingEntities,
+  initLakehouse,
+  logActivity,
+} from "./lakehouse.js";
 
 const app = express();
 app.use(cors());
@@ -11,6 +18,11 @@ app.use(bodyParser.json());
 async function start() {
   await initDB();
   const db = getDB();
+  await initLakehouse(db);
+
+  app.get("/health", (req, res) => {
+    return res.json({ status: "ok", service: "savr-backend" });
+  });
 
   //Register
   app.post("/register", async (req, res) => {
@@ -27,6 +39,14 @@ async function start() {
         `INSERT INTO Users (username, password, account_creation) VALUES (?, ?, datetime('now'))`,
         [username, hashed]
       );
+
+      await logActivity(db, {
+        username,
+        eventType: "register",
+        entityType: "user",
+        entityId: username,
+        metadata: { route: "/register" },
+      });
 
       return res.status(201).json({ username });
     } catch (err) {
@@ -54,7 +74,15 @@ async function start() {
       
       if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
-      // minimal response — no token management
+      await logActivity(db, {
+        userId: user.idUsers,
+        username: user.username,
+        eventType: "login",
+        entityType: "user",
+        entityId: user.idUsers,
+        metadata: { route: "/login" },
+      });
+
       return res.json({ id: user.idUsers, username: user.username });
     } catch (err) {
       console.error(err);
@@ -63,8 +91,52 @@ async function start() {
     }
   });
 
+  app.post("/activity", async (req, res) => {
+    try {
+      await logActivity(db, req.body || {});
+
+      return res.status(201).json({ message: "Activity event logged" });
+    } catch (err) {
+      return res.status(400).json({ error: err.message || "Invalid activity event" });
+    }
+  });
+
+  app.get("/analytics/summary", async (req, res) => {
+    try {
+      return res.json(await getAnalyticsSummary(db));
+    } catch (err) {
+      console.error(err);
+
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.get("/analytics/events", async (req, res) => {
+    try {
+      const events = await getRecentEvents(db, req.query.limit);
+
+      return res.json({ events });
+    } catch (err) {
+      console.error(err);
+
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  app.get("/analytics/trending", async (req, res) => {
+    try {
+      const entities = await getTrendingEntities(db, req.query.days, req.query.limit);
+
+      return res.json({ entities });
+    } catch (err) {
+      console.error(err);
+
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
   const port = process.env.PORT || 4000;
-  app.listen(port, () => console.log(`Auth server listening on http://localhost:${port}`));
+  app.listen(port, () => console.log(`Savr backend listening on http://localhost:${port}`));
 }
 
 start().catch((err) => {

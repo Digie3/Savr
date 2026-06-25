@@ -159,6 +159,25 @@ CREATE TABLE IF NOT EXISTS IngredientMedia (
 );
 
 -- -----------------------------------------------------
+-- Table `ActivityEvents`
+-- Simplified lakehouse/event log for analytics.
+-- -----------------------------------------------------
+CREATE TABLE IF NOT EXISTS ActivityEvents (
+    idActivityEvents INTEGER PRIMARY KEY AUTOINCREMENT,
+    Users_idUsers INTEGER,
+    username TEXT,
+    event_type TEXT NOT NULL,
+    entity_type TEXT,
+    entity_id TEXT,
+    event_value REAL,
+    metadata_json TEXT,
+    source TEXT NOT NULL DEFAULT 'web',
+    created_at DATETIME NOT NULL DEFAULT (datetime('now')),
+    FOREIGN KEY (Users_idUsers)
+        REFERENCES Users(idUsers)
+);
+
+-- -----------------------------------------------------
 -- Indexes
 -- -----------------------------------------------------
 CREATE INDEX IF NOT EXISTS idx_recipes_user
@@ -196,3 +215,15 @@ ON Followers(idFollower);
 
 CREATE INDEX IF NOT EXISTS idx_followers_followed
 ON Followers(idFollowed);
+
+CREATE INDEX IF NOT EXISTS idx_activity_events_type
+ON ActivityEvents(event_type);
+
+CREATE INDEX IF NOT EXISTS idx_activity_events_created
+ON ActivityEvents(created_at);
+
+CREATE INDEX IF NOT EXISTS idx_activity_events_entity
+ON ActivityEvents(entity_type, entity_id);
+
+CREATE INDEX IF NOT EXISTS idx_activity_events_user
+ON ActivityEvents(Users_idUsers);
