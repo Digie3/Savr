@@ -10,6 +10,7 @@ import Profile from "./pages/Profile";
 import SavedRecipes from "./pages/SavedRecipes";
 import CreateRecipe from "./pages/CreateRecipe";
 import RecipeDetails from "./pages/RecipeDetails";
+import Analytics from "./pages/Analytics";
 
 function App() {
   return (
@@ -25,6 +26,7 @@ function App() {
         <Route path="/saved" element={<SavedRecipes />} />
         <Route path="/create" element={<CreateRecipe />} />
         <Route path="/recipe" element={<RecipeDetails />} />
+        <Route path="/analytics" element={<Analytics />} />
       </Routes>
     </BrowserRouter>
   );

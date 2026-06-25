@@ -1,5 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 
+import { trackActivity } from "../lib/activity";
+
 function Register() {
   const navigate = useNavigate();
 
@@ -9,6 +11,12 @@ function Register() {
     const form = new FormData(event.target);
     const username = form.get("username");
     const password = form.get("password");
+    const confirm = form.get("confirm");
+
+    if (password !== confirm) {
+      alert("Passwords must match");
+      return;
+    }
 
     fetch("http://localhost:4000/register", {
       method: "POST",
@@ -19,7 +27,16 @@ function Register() {
         if (!r.ok) return r.json().then((e) => Promise.reject(e));
         return r.json();
       })
-      .then(() => navigate("/login"))
+      .then(() => {
+        trackActivity({
+          username,
+          eventType: "page_view",
+          entityType: "page",
+          entityId: "login-after-register",
+          metadata: { path: "/login" },
+        });
+        navigate("/login");
+      })
       .catch((err) => alert(err.error || "Registration failed"));
   }
 

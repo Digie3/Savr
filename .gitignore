@@ -1,7 +1,10 @@
-Database/relational_database/.DS_Store
-Codebase/.DS_Store
-Database/relational_database/.DS_Store
 .DS_Store
-Database/relational_database/.DS_Store
-Database/relational_database/.DS_Store
-.DS_Store
+node_modules/
+
+Codebase/backend/node_modules/
+Codebase/frontend/node_modules/
+
+dist/
+dist-ssr/
+*.log
+*.local

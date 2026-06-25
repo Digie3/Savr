@@ -1,5 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 
+import { trackActivity } from "../lib/activity";
+
 function Login() {
   const navigate = useNavigate();
 
@@ -19,7 +21,16 @@ function Login() {
         if (!r.ok) return r.json().then((e) => Promise.reject(e));
         return r.json();
       })
-      .then(() => navigate("/home"))
+      .then((user) => {
+        localStorage.setItem("savrUser", JSON.stringify(user));
+        trackActivity({
+          eventType: "page_view",
+          entityType: "page",
+          entityId: "home-after-login",
+          metadata: { path: "/home" },
+        });
+        navigate("/home");
+      })
       .catch((err) => alert(err.error || "Login failed"));
   }
 
