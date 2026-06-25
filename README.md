@@ -166,13 +166,18 @@ Before running the project, ensure you have:
 
 ### Clone the Repository
 
-## Backend (terminal 1):
+ Backend (terminal 1):
+ ```text
 cd .../backend 
 node index.js
+```
 
-## Frontend (terminal 2):
+
+ Frontend (terminal 2):
+```text
 cd .../frontend
 npm run dev
+```
 ---
 
 ### Database
