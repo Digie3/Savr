@@ -166,28 +166,13 @@ Before running the project, ensure you have:
 
 ### Clone the Repository
 
-### Backend Setup
+## Backend (terminal 1):
+cd .../backend 
+node index.js
 
-1. Open the backend project in your preferred IDE (Spring Tools Suite, Eclipse, or IntelliJ IDEA).
-
-2. Ensure Maven dependencies are installed.
-
-3. Locate the Spring Boot application entry point.
-
-4. Run the application as:
-
-```text
-Spring Boot App
-```
-
-The backend will start locally.
-
----
-
-### Frontend Setup
-
-TBD
-
+## Frontend (terminal 2):
+cd .../frontend
+npm run dev
 ---
 
 ### Database
