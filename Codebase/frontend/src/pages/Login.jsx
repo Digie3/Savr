@@ -1,18 +1,21 @@
 import { Link, useNavigate } from "react-router-dom";
 
 import { trackActivity } from "../lib/activity";
+import { useAuth } from "../auth/AuthContext";
+import { API_BASE } from "../api";
 
 function Login() {
   const navigate = useNavigate();
+  const { login } = useAuth();
 
   function handleLogin(event) {
     event.preventDefault();
-    
+
     const form = new FormData(event.target);
     const username = form.get("username");
     const password = form.get("password");
 
-    fetch("http://localhost:4000/login", {
+    fetch(`${API_BASE}/login`, {
       method: "POST",
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
@@ -21,8 +24,10 @@ function Login() {
         if (!r.ok) return r.json().then((e) => Promise.reject(e));
         return r.json();
       })
-      .then((user) => {
-        localStorage.setItem("savrUser", JSON.stringify(user));
+      .then((data) => {
+        // Stores the JWT + user, and keeps localStorage "savrUser" in sync
+        // so analytics events are attributed to the logged-in user.
+        login(data.token, data.user);
         trackActivity({
           eventType: "page_view",
           entityType: "page",
