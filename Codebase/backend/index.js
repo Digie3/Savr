@@ -1,8 +1,10 @@
+import "dotenv/config";
 import express from "express";
 import bodyParser from "body-parser";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import { initDB, getDB } from "./db.js";
+import { signToken, requireAuth } from "./auth.js";
 import {
   getAnalyticsSummary,
   getRecentEvents,
@@ -83,12 +85,31 @@ async function start() {
         metadata: { route: "/login" },
       });
 
-      return res.json({ id: user.idUsers, username: user.username });
+      // Issue a JWT the client stores and sends back on future requests.
+      const token = signToken(user);
+      return res.json({ token, user: { id: user.idUsers, username: user.username } });
     } catch (err) {
       console.error(err);
 
       return res.status(500).json({ error: "Server error" });
     }
+  });
+
+  // Session validation: returns the current user if the bearer token is valid.
+  app.get("/me", requireAuth, async (req, res) => {
+    const user = await db.getAsync(
+      `SELECT idUsers, username FROM Users WHERE idUsers = ?`,
+      [req.user.id]
+    );
+    if (!user) return res.status(401).json({ error: "User no longer exists" });
+    return res.json({ user: { id: user.idUsers, username: user.username } });
+  });
+
+  // Logout. With stateless JWTs the token is discarded on the client; this
+  // endpoint gives the frontend a logout call and a place to add a token
+  // blocklist later without changing the frontend.
+  app.post("/logout", requireAuth, (req, res) => {
+    return res.json({ ok: true });
   });
 
   app.post("/activity", async (req, res) => {

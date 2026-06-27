@@ -30,6 +30,27 @@ body {
   font-weight: 600;
 }
 
+.nav-user {
+  color: white;
+  font-weight: 600;
+  align-self: center;
+}
+
+.nav-logout {
+  background: none;
+  border: none;
+  color: white;
+  font-weight: 600;
+  font-family: inherit;
+  font-size: inherit;
+  cursor: pointer;
+  padding: 0;
+}
+
+.nav-logout:hover {
+  text-decoration: underline;
+}
+
 .landing-page {
   min-height: calc(100vh - 70px);
   padding: 4rem 3rem;

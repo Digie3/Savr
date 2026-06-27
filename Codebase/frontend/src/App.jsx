@@ -1,6 +1,7 @@
 import { BrowserRouter, Routes, Route } from "react-router-dom";
 
 import Navbar from "./components/Navbar";
+import ProtectedRoute from "./auth/ProtectedRoute";
 
 import Landing from "./pages/Landing";
 import Home from "./pages/Home";
@@ -22,9 +23,9 @@ function App() {
         <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/saved" element={<SavedRecipes />} />
-        <Route path="/create" element={<CreateRecipe />} />
+        <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/saved" element={<ProtectedRoute><SavedRecipes /></ProtectedRoute>} />
+        <Route path="/create" element={<ProtectedRoute><CreateRecipe /></ProtectedRoute>} />
         <Route path="/recipe" element={<RecipeDetails />} />
         <Route path="/analytics" element={<Analytics />} />
       </Routes>
