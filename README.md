@@ -159,6 +159,7 @@ Before running the project, ensure you have:
 * Java 21 or higher
 * Maven
 * A modern web browser
+* node.js installed
 
 ---
 
@@ -167,8 +168,9 @@ Before running the project, ensure you have:
 ### Clone the Repository
 
  Backend (terminal 1):
+ If this is your first time running, use 'npm install' after navigating to both the backend and frontend folders.
  ```text
-cd .../backend 
+cd .../backend
 node index.js
 ```
 
@@ -178,6 +180,7 @@ node index.js
 cd .../frontend
 npm run dev
 ```
+Your frontend terminal should give you a localhost address, copy and paste it into your browser.
 ---
 
 ### Database
