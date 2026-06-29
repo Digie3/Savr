@@ -1,8 +1,9 @@
 import jwt from "jsonwebtoken";
+import crypto from "crypto";
 
 // Secret and lifetime come from the environment (see .env / .env.example).
 // The fallback only exists so the server still boots in dev if .env is missing.
-const JWT_SECRET = process.env.JWT_SECRET || "dev-secret-change-me";
+const JWT_SECRET = process.env.JWT_SECRET || crypto.randomBytes(64).toString("hex") || "dev-secret-change-me";
 const JWT_EXPIRES_IN = process.env.JWT_EXPIRES_IN || "1d";
 
 // Create a signed token for a logged-in user.
