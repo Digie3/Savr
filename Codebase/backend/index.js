@@ -236,6 +236,78 @@ async function start() {
       return res.status(500).json({ error: "Server error" });
     }
   });
+
+  // Recipe Service - POST recipe
+  app.post("/create", requireAuth, async (req, res) => {
+    try {
+      const {
+        title,
+        description,
+        instructions,
+        prep_time,
+        cooking_time,
+        num_servings
+      } = req.body;
+
+      if (!title) 
+      {
+        return res.status(400).json({ error: "Title is required" });
+      }
+      if (!instructions)
+      {
+        return res.status(400).json({ error: "Instruction is required" });
+      }
+      if (prep_time == null)
+      {
+        return res.status(400).json({ error: "Prep time is required" });
+      }
+      if (cooking_time == null)
+      {
+        return res.status(400).json({ error: "Cooking time is required" });
+      }
+      if (num_servings == null)
+      {
+        return res.status(400).json({ error: "Number of servings is required" });
+      }
+    
+      const userId = req.user.id;
+
+      const recipe = await db.runAsync(
+        `INSERT INTO Recipes
+        (Users_idUsers, title, description, instructions,
+         prep_time, cooking_time, num_servings, date_posted)
+         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+        [
+            userId,
+            title,
+            description,
+            instructions,
+            prep_time,
+            cooking_time,
+            num_servings
+        ]
+      );
+
+      const recipeId = recipe.lastID; 
+
+      await logActivity(db, {
+        userId: req.user.id,
+        username: req.user.username,
+        eventType: "create_recipe",
+        entityType: "recipe",
+        entityId: recipeId,
+        metadata: { route: "/create" },
+      });
+
+      return res.status(201).json({
+        message: "Posted Recipe successfully",
+        recipeId,
+      });
+    } catch (err) {
+      return res.status(500).json({ error: "Failed to Post Recipe" });
+    }
+  });
+
   app.post("/activity", async (req, res) => {
     try {
       await logActivity(db, req.body || {});
