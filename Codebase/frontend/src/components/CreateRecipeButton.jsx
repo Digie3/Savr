@@ -44,7 +44,7 @@ function CreateRecipeButton() {
             
             <div className="textbox">
                 <textarea
-                    rows={5}
+                    rows={7}
                     maxLength={1000}
                     placeholder="Description"
                     value={description}
@@ -58,7 +58,7 @@ function CreateRecipeButton() {
 
             <div className="textbox">
                 <textarea
-                    rows={5}
+                    rows={7}
                     maxLength={1000}
                     placeholder="Instructions"
                     value={instructions}

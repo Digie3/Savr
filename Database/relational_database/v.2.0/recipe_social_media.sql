@@ -25,9 +25,9 @@ CREATE TABLE IF NOT EXISTS Users (
 CREATE TABLE IF NOT EXISTS Recipes (
     idRecipes INTEGER PRIMARY KEY AUTOINCREMENT,
     Users_idUsers INTEGER NOT NULL,
-    title TEXT NOT NULL CHECK(length(description) <= 100),
+    title TEXT NOT NULL CHECK(length(title) <= 100),
     description TEXT CHECK(length(description) <= 1000),
-    instructions TEXT CHECK(length(description) <= 1000),
+    instructions TEXT CHECK(length(instructions) <= 1000),
     prep_time INTEGER NOT NULL CHECK (prep_time >= 0),
     cooking_time INTEGER NOT NULL CHECK (cooking_time >= 0),
     num_servings INTEGER NOT NULL CHECK (num_servings > 0),
