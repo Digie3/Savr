@@ -70,29 +70,31 @@ function CreateRecipeButton() {
                 </div>
             </div>
 
-            <input
-                type="number"
-                min="0"
-                placeholder="Prep Time"
-                value={prepTime}
-                onChange={(e) => setPrepTime(e.target.value)}
-            />
+            <div className="recipe-details">
+                <input
+                    type="number"
+                    min="0"
+                    placeholder="Preparation Time (mins)"
+                    value={prepTime}
+                    onChange={(e) => setPrepTime(e.target.value)}
+                />
 
-            <input
-                type="number"
-                min="0"
-                placeholder="Cooking Time"
-                value={cookingTime}
-                onChange={(e) => setCookingTime(e.target.value)}
-            />
+                <input
+                    type="number"
+                    min="0"
+                    placeholder="Cooking Time (mins)"
+                    value={cookingTime}
+                    onChange={(e) => setCookingTime(e.target.value)}
+                />
 
-            <input
-                type="number"
-                min="1"
-                placeholder="Number of Servings"
-                value={numServings}
-                onChange={(e) => setNumServings(e.target.value)}
-            />
+                <input
+                    type="number"
+                    min="1"
+                    placeholder="# of Servings"
+                    value={numServings}
+                    onChange={(e) => setNumServings(e.target.value)}
+                />
+            </div>
 
             <button onClick={handleSubmit}>
                 Create Recipe
