@@ -29,11 +29,13 @@ export function AuthProvider({ children }) {
         setUser(data.user);
         localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       })
-      .catch(() => {
-        localStorage.removeItem(TOKEN_KEY);
-        localStorage.removeItem(USER_KEY);
-        setToken(null);
-        setUser(null);
+      .catch((err) => {
+        if (err.message === "401") {
+          localStorage.removeItem(TOKEN_KEY);
+          localStorage.removeItem(USER_KEY);
+          setToken(null);
+          setUser(null);
+        }
       })
       .finally(() => setLoading(false));
   }, [token]);
