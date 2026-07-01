@@ -332,6 +332,48 @@ body {
   font-weight: 700;
 }
 
+.create-recipe-page {
+  display: flex;
+  flex-direction: column;
+  align-items: center;      
+  justify-content: center;  
+  min-height: 50vh;        
+}
+
+.create-recipe-form {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  width: 400px;
+}
+
+.create-recipe-form input,
+.create-recipe-form textarea,
+.create-recipe-form button {
+  padding: 10px;
+}
+
+.textbox {
+  position: relative;
+  width: 100%;
+}
+
+.textbox textarea {
+  width: 100%;
+  padding: 10px;
+  padding-bottom: 25px; /* leaves room for counter */
+  box-sizing: border-box;
+}
+
+.char-counter {
+  position: absolute;
+  bottom: 8px;
+  right: 10px;
+  font-size: 12px;
+  color: darkblue;
+  pointer-events: none;
+}
+
 @media (max-width: 820px) {
   .metric-grid,
   .analytics-grid {

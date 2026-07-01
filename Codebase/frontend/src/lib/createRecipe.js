@@ -6,6 +6,7 @@ function getToken() {
 
 export async function createRecipe(recipe) {
     const response = await fetch(`${BASE_URL}/create`, {
+        method: "POST",
         headers: {
             "Content-Type": "application/json",
             Authorization: `Bearer ${getToken()}`,

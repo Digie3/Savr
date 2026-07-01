@@ -253,21 +253,50 @@ async function start() {
       {
         return res.status(400).json({ error: "Title is required" });
       }
+      else if (title.length > 100)
+      {
+        return res.status(400).json({ error: "Title can have at most 100 characters"});
+      }
+
+      if (description && description.length > 250) 
+      {
+        return res.status(400).json({ error: "Description can have at most 1000 characters"});
+      }
+
       if (!instructions)
       {
         return res.status(400).json({ error: "Instruction is required" });
       }
+      else if (instructions.length > 100)
+      {
+        return res.status(400).json({ error: "Instructions can have at most 1000 characters"});
+      }
+
       if (prep_time == null)
       {
         return res.status(400).json({ error: "Prep time is required" });
       }
+      else if (prep_time < 0)
+      {
+        return res.status(400).json({ error: "Preparation time cannot be negative" });
+      }
+
       if (cooking_time == null)
       {
         return res.status(400).json({ error: "Cooking time is required" });
       }
+      else if (cooking_time < 0)
+      {
+        return res.status(400).json({ error: "Cooking time cannot be negative" });
+      }
+
       if (num_servings == null)
       {
         return res.status(400).json({ error: "Number of servings is required" });
+      }
+      else if (num_servings < 1)
+      {
+        return res.status(400).json({ error: "Number of Servings must be at least 1 servings" });
       }
     
       const userId = req.user.id;
@@ -288,22 +317,20 @@ async function start() {
         ]
       );
 
-      const recipeId = recipe.lastID; 
-
       await logActivity(db, {
         userId: req.user.id,
         username: req.user.username,
-        eventType: "create_recipe",
+        eventType: "recipe_create",
         entityType: "recipe",
-        entityId: recipeId,
+        entityId: null,
         metadata: { route: "/create" },
       });
 
       return res.status(201).json({
         message: "Posted Recipe successfully",
-        recipeId,
       });
     } catch (err) {
+      console.error(err);
       return res.status(500).json({ error: "Failed to Post Recipe" });
     }
   });
