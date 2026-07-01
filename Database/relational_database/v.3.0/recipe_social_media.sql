@@ -42,7 +42,7 @@ CREATE TABLE IF NOT EXISTS RecipeSteps (
     idRecipeSteps INTEGER PRIMARY KEY AUTOINCREMENT,
     Recipes_idRecipes INTEGER NOT NULL,
     step_number INTEGER NOT NULL,
-    instruction_text TEXT NOT NULL,
+    instruction_text TEXT NOT NULL CHECK(length(instruction_text) <= 500),
     UNIQUE(Recipes_idRecipes, step_number),
     FOREIGN KEY (Recipes_idRecipes)
         REFERENCES Recipes(idRecipes)

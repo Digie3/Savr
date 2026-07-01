@@ -231,18 +231,29 @@ function CreateRecipeButton() {
                         key={index}
                         className="step-card"
                     >
-                        <textarea
-                            rows={4}
-                            placeholder={`Step ${index + 1}`}
-                            value={step.text}
-                            onChange={(e) => updateStep(index, "text", e.target.value)}
-                        />
+                        <div className="step-card">
+                            <div className="step-container">
+                                <textarea
+                                    maxLength={500}
+                                    rows={8}
+                                    placeholder={`Step ${index + 1}`}
+                                    value={step.text}
+                                    onChange={(e) => updateStep(index, "text", e.target.value)}
+                                />
 
-                        <input
-                            type="file"
-                            accept="image/*"
-                            onChange={(e) => updateStep(index, "image", e.target.files[0])}
-                        />
+                                <div className="step-char-counter">
+                                    {step.text.length}/500
+                                </div>
+                            </div>
+
+                            <input
+                                type="file"
+                                accept="image/*"
+                                onChange={(e) =>
+                                    updateStep(index, "image", e.target.files[0])
+                                }
+                            />
+                        </div>
 
                         {steps.length > 1 && (
                             <button

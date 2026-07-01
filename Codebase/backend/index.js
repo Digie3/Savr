@@ -440,6 +440,16 @@ async function start() {
       for (const key of stepKeys) {
         const stepIndex = Number(key.replace("step_text_", ""));
         const stepText = req.body[key];
+
+        //Correctness Checks 
+        if (!stepText) {
+          return res.status(400).json({error: `Step ${stepNumber + 1} is required`});
+        }
+        else if (stepText.length > 500) {
+          return res.status(400).json({
+            error: `Step ${stepNumber + 1} can have at most 500 characters`});
+        }
+
         const stepResult = await db.runAsync(
           `INSERT INTO RecipeSteps
           (Recipes_idRecipes, step_number, instruction_text)
