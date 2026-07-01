@@ -366,7 +366,7 @@ body {
   border: 0px solid rgba(0, 0, 0, 0.75);
   border-radius: 20px;
   box-shadow: 0 10px 30px rgba(0,0,0,0.5);
-  color: white;        
+  color: rgb(0, 0, 0);        
 }
 
 .create-recipe-page h1 {
@@ -383,6 +383,37 @@ body {
   flex-direction: column;
   gap: 10px;
   width: 600px;
+}
+
+.recipe-label,
+.form-section h3,
+.form-section label {
+    display: block;
+    color: #333;
+    font-size: 24px;
+    font-weight: 700;
+    margin-top: 20px;
+    margin-bottom: 12px;
+}
+
+.form-section,
+.textbox,
+.recipe-details {
+    margin-bottom: 5px;
+}
+
+.ingredient-card {
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
+}
+
+.step-card {
+  margin-bottom: 30px;
+  padding: 20px;
+  border: 1px solid #ddd;
+  border-radius: 10px;
 }
 
 .recipe-details {

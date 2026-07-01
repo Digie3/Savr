@@ -4,14 +4,13 @@ function getToken() {
     return localStorage.getItem("savr_token");
 }
 
-export async function createRecipe(recipe) {
+export async function createRecipe(formData) {
     const response = await fetch(`${BASE_URL}/create`, {
         method: "POST",
         headers: {
-            "Content-Type": "application/json",
             Authorization: `Bearer ${getToken()}`,
         },
-        body: JSON.stringify(recipe),
+        body: formData,
     });
 
     return response.json();

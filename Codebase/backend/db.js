@@ -6,7 +6,7 @@ import { promisify } from "util";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.resolve(__dirname, "..", "..", "Database", "relational_database", "v.2.0", "recipe_social_media.db");
+const dbPath = path.resolve(__dirname, "..", "..", "Database", "relational_database", "v.3.0", "recipe_social_media.db");
 
 let db;
 

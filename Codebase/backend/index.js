@@ -1,5 +1,6 @@
 import "dotenv/config";
 import express from "express";
+import multer from "multer";
 import bodyParser from "body-parser";
 import cors from "cors";
 import bcrypt from "bcryptjs";
@@ -16,6 +17,28 @@ import {
 const app = express();
 app.use(cors());
 app.use(bodyParser.json());
+
+const storage = multer.diskStorage({
+  destination: function (req, file, cb) {
+    cb(null, "uploads/");
+  },
+
+  filename: function (req, file, cb) {
+    cb(
+      null,
+      Date.now() + "-" + file.originalname
+    );
+  },
+});
+
+const upload = multer({
+  storage,
+});
+
+app.use(
+  "/uploads",
+  express.static("uploads")
+);
 
 async function start() {
   await initDB();
@@ -69,11 +92,11 @@ async function start() {
       if (!username || !password) return res.status(400).json({ error: "Missing fields" });
 
       const user = await db.getAsync(`SELECT idUsers, username, password FROM Users WHERE username = ?`, [username]);
-      
+
       if (!user) return res.status(401).json({ error: "Invalid credentials" });
 
       const match = await bcrypt.compare(password, user.password);
-      
+
       if (!match) return res.status(401).json({ error: "Invalid credentials" });
 
       await logActivity(db, {
@@ -111,7 +134,7 @@ async function start() {
   app.post("/logout", requireAuth, (req, res) => {
     return res.json({ ok: true });
   });
-    // Follow Service - follow a user
+  // Follow Service - follow a user
   app.post("/follow/:idFollowed", requireAuth, async (req, res) => {
     try {
       const idFollower = req.user.id;
@@ -238,96 +261,236 @@ async function start() {
   });
 
   // Recipe Service - POST recipe
-  app.post("/create", requireAuth, async (req, res) => {
+  app.post("/create", requireAuth, upload.any(), async (req, res) => {
     try {
       const {
         title,
         description,
-        instructions,
         prep_time,
         cooking_time,
         num_servings
       } = req.body;
 
-      if (!title) 
-      {
+      //Convertion into a Number
+      const prepTime = Number(prep_time);
+      const cookingTime = Number(cooking_time);
+      const numServings = Number(num_servings);
+
+      //Correctness Checks
+      if (!title) {
         return res.status(400).json({ error: "Title is required" });
       }
-      else if (title.length > 100)
-      {
-        return res.status(400).json({ error: "Title can have at most 100 characters"});
+      else if (title.length > 100) {
+        return res.status(400).json({ error: "Title can have at most 100 characters" });
       }
 
-      if (description && description.length > 250) 
-      {
-        return res.status(400).json({ error: "Description can have at most 1000 characters"});
+      if (description && description.length > 1000) {
+        return res.status(400).json({ error: "Description can have at most 1000 characters" });
       }
 
-      if (!instructions)
-      {
-        return res.status(400).json({ error: "Instruction is required" });
-      }
-      else if (instructions.length > 100)
-      {
-        return res.status(400).json({ error: "Instructions can have at most 1000 characters"});
-      }
-
-      if (prep_time == null)
-      {
+      if (Number.isNaN(prepTime)) {
         return res.status(400).json({ error: "Prep time is required" });
       }
-      else if (prep_time < 0)
-      {
+      else if (prepTime < 0) {
         return res.status(400).json({ error: "Preparation time cannot be negative" });
       }
 
-      if (cooking_time == null)
-      {
+      if (Number.isNaN(cookingTime)) {
         return res.status(400).json({ error: "Cooking time is required" });
       }
-      else if (cooking_time < 0)
-      {
+      else if (cookingTime < 0) {
         return res.status(400).json({ error: "Cooking time cannot be negative" });
       }
 
-      if (num_servings == null)
-      {
+      if (Number.isNaN(numServings)) {
         return res.status(400).json({ error: "Number of servings is required" });
       }
-      else if (num_servings < 1)
-      {
+      else if (numServings < 1) {
         return res.status(400).json({ error: "Number of Servings must be at least 1 servings" });
       }
-    
-      const userId = req.user.id;
 
+      // RECIPE
+      const userId = req.user.id;
       const recipe = await db.runAsync(
         `INSERT INTO Recipes
-        (Users_idUsers, title, description, instructions,
+        (Users_idUsers, title, description,
          prep_time, cooking_time, num_servings, date_posted)
-         VALUES (?, ?, ?, ?, ?, ?, ?, datetime('now'))`,
+         VALUES (?, ?, ?, ?, ?, ?, datetime('now'))`,
         [
-            userId,
-            title,
-            description,
-            instructions,
-            prep_time,
-            cooking_time,
-            num_servings
+          userId,
+          title,
+          description || null,
+          prepTime,
+          cookingTime,
+          numServings
         ]
       );
 
+      // RECIPE IMAGE
+      const recipeImage = req.files.find(file => file.fieldname === "recipeImage");
+
+      if (recipeImage) {
+        const media = await db.runAsync(
+          `INSERT INTO Media
+          (media_url, media_type, upload_date)
+          VALUES (?, 'recipe', datetime('now'))`,
+          [
+            `/uploads/${recipeImage.filename}`
+          ]
+        );
+
+        await db.runAsync(
+          `INSERT INTO RecipeMedia
+          (Media_idMedia, Recipes_idRecipes)
+          VALUES (?, ?)`,
+          [
+            media.lastID,
+            recipeId
+          ]
+        );
+      }
+
+      // INGREDIENTS
+      const ingredientIndexes = new Set();
+
+      Object.keys(req.body).forEach(key => {
+        const match = key.match(/^ingredients\[(\d+)\]\[name\]$/);
+
+        if (match) {
+          ingredientIndexes.add(
+            Number(match[1])
+          );
+        }
+      });
+
+      for (const index of ingredientIndexes) {
+        const name = req.body[`ingredients[${index}][name]`];
+        const quantity = Number(
+          req.body[`ingredients[${index}][quantity]`]
+        );
+        const unit = req.body[`ingredients[${index}][unit]`];
+        const otherDesc =
+          req.body[`ingredients[${index}][other_desc]`];
+
+        if (!name) continue;
+
+        let ingredient = await db.getAsync(
+          `SELECT idIngredients
+          FROM Ingredients
+          WHERE name = ?`,
+          [name]
+        );
+
+        let ingredientId;
+
+        if (!ingredient) {
+          const result = await db.runAsync(
+            `INSERT INTO Ingredients
+            (name)
+            VALUES(?)`,
+            [name]
+          );
+
+          ingredientId = result.lastID;
+        }
+        else {
+          ingredientId = ingredient.idIngredients;
+        }
+
+        await db.runAsync(
+          `INSERT INTO Recipes_has_Ingredients
+          (Recipes_idRecipes, Ingredients_idIngredients, quantity, unit, other_desc)
+          VALUES(?, ?, ?, ?, ?)`,
+          [
+            recipeId,
+            ingredientId,
+            quantity,
+            unit,
+            otherDesc || null
+          ]
+        );
+
+        const ingredientImage = req.files.find(file => file.fieldname === `ingredients[${index}][image]`);
+
+        if (ingredientImage) {
+          const media = await db.runAsync(
+            `INSERT INTO Media
+            (media_url, media_type, upload_date)
+            VALUES(?, 'ingredient', datetime('now'))`,
+            [
+              `/uploads/${ingredientImage.filename}`
+            ]
+          );
+
+          await db.runAsync(
+            `INSERT INTO IngredientMedia
+            (Media_idMedia, Ingredients_idIngredients)
+            VALUES(?, ?)`,
+            [
+              media.lastID,
+              ingredientId
+            ]
+          );
+        }
+      }
+
+      //RECIPE STEPS
+      const stepKeys = Object.keys(req.body).filter(key => key.startsWith("step_text_"));
+
+      for (const key of stepKeys) {
+        const stepIndex = Number(key.replace("step_text_", ""));
+        const stepText = req.body[key];
+        const stepResult = await db.runAsync(
+          `INSERT INTO RecipeSteps
+          (Recipes_idRecipes, step_number, instruction_text)
+          VALUES(?, ?, ?)`,
+          [
+            recipeId,
+            stepIndex + 1,
+            stepText
+          ]
+        );
+
+        const stepId = stepResult.lastID;
+
+        const stepImage = req.files.find(file => file.fieldname === `step_image_${stepIndex}`);
+
+        if (stepImage) {
+          const media = await db.runAsync(
+            `INSERT INTO Media
+            (media_url, media_type, upload_date)
+            VALUES(?, 'step', datetime('now'))`,
+            [
+              `/uploads/${stepImage.filename}`
+            ]
+          );
+
+          await db.runAsync(
+            `INSERT INTO RecipeStepMedia
+            (Media_idMedia, RecipeSteps_idRecipeSteps)
+            VALUES(?, ?)`,
+            [
+              media.lastID,
+              stepId
+            ]
+          );
+        }
+      }
+
+      // LOG
+      const recipeId = recipe.lastID;
       await logActivity(db, {
         userId: req.user.id,
         username: req.user.username,
         eventType: "recipe_create",
         entityType: "recipe",
-        entityId: null,
+        entityId: recipeId,
         metadata: { route: "/create" },
       });
 
       return res.status(201).json({
         message: "Posted Recipe successfully",
+        recipeId
       });
     } catch (err) {
       console.error(err);
