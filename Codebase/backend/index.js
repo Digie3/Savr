@@ -287,38 +287,6 @@ async function start() {
 
   // Recipe Service - POST recipe
   app.post("/create", requireAuth, upload.any(), async (req, res) => {
-    console.log("========== CREATE ==========");
-    console.log("BODY:");
-    console.log(req.body);
-
-    console.log("BODY KEYS:");
-    console.log(Object.keys(req.body));
-
-    console.log("FILES:");
-    console.log(req.files);
-
-    // INGREDIENT DEBUG
-    console.log("INGREDIENTS:");
-    console.log(req.body.ingredients);
-    console.log("INGREDIENTS TYPE:");
-    console.log(typeof req.body.ingredients);
-    console.log("IS ARRAY:");
-    console.log(Array.isArray(req.body.ingredients));
-
-    // STEP DEBUG
-    console.log("STEP KEYS:");
-    console.log(
-      Object.keys(req.body).filter(key =>
-        key.startsWith("step_text_")
-      )
-    );
-
-    console.log("STEP VALUES:");
-    Object.keys(req.body)
-      .filter(key => key.startsWith("step_text_"))
-      .forEach(key => {
-        console.log(`${key}:`, req.body[key]);
-      });
     try {
       const {
         title,
