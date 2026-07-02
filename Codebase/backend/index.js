@@ -1,6 +1,8 @@
 import "dotenv/config";
 import express from "express";
 import multer from "multer";
+import fs from "fs";
+import path from "path";
 import bodyParser from "body-parser";
 import cors from "cors";
 import bcrypt from "bcryptjs";
@@ -20,13 +22,36 @@ app.use(bodyParser.json());
 
 const storage = multer.diskStorage({
   destination: function (req, file, cb) {
-    cb(null, "uploads/");
+    const userId = req.user.id;
+    let folder = "misc";
+
+    if (file.fieldname === "recipeImage") {
+      folder = "recipes";
+    }
+    else if (file.fieldname.includes("ingredients")) {
+      folder = "ingredients";
+    }
+    else if (file.fieldname.includes("step_image")) {
+      folder = "steps";
+    }
+
+    const uploadPath = path.join(
+      "uploads",
+      `user_${userId}`,
+      folder
+    );
+
+    fs.mkdirSync(uploadPath, {
+      recursive: true
+    });
+
+    cb(null, uploadPath);
   },
 
   filename: function (req, file, cb) {
     cb(
       null,
-      Date.now() + "-" + file.originalname
+      `${Date.now()}-${file.originalname}`
     );
   },
 });
@@ -427,7 +452,7 @@ async function start() {
           (media_url, media_type, upload_date)
           VALUES (?, 'recipe', datetime('now'))`,
           [
-            `/uploads/${recipeImage.filename}`
+            `/uploads/user_${req.user.id}/recipes/${recipeImage.filename}`
           ]
         );
 
@@ -494,7 +519,7 @@ async function start() {
             (media_url, media_type, upload_date)
             VALUES(?, 'ingredient', datetime('now'))`,
             [
-              `/uploads/${ingredientImage.filename}`
+              `/uploads/user_${req.user.id}/ingredients/${ingredientImage.filename}`
             ]
           );
 
@@ -536,7 +561,7 @@ async function start() {
             (media_url, media_type, upload_date)
             VALUES(?, 'step', datetime('now'))`,
             [
-              `/uploads/${stepImage.filename}`
+              `/uploads/user_${req.user.id}/steps/${stepImage.filename}`
             ]
           );
 
