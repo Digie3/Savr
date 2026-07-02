@@ -13,6 +13,12 @@ export async function createRecipe(formData) {
         body: formData,
     });
 
-    return response.json();
+    const data = await response.json();
+
+    return {
+        ok: response.ok,
+        status: response.status,
+        data,
+    };
 }
 

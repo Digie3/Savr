@@ -62,19 +62,31 @@ function CreateRecipeButton() {
                 }
             });
 
-            const data = await createRecipe(formData);
+            const outcome = await createRecipe(formData);
 
-            if (data.error) {
-                alert(data.error);
+            if (!outcome.ok) {
+                if (outcome.data.errors) {
+                    alert(outcome.data.errors.join("\n"));
+                }
+                else if (outcome.data.error) {
+                    alert(outcome.data.error);
+                }
+                else {
+                    alert("Failed to create recipe.")
+                }
+
                 return;
             }
 
             alert("Recipe created successfully!");
         }
+        catch (err) {
+            console.error(err);
+            alert("Unexpected error occurred in Create Recipe.");
+        }
         finally {
             setLoading(false);
         }
-
     }
 
     function addIngredient() {
@@ -308,6 +320,7 @@ function CreateRecipeButton() {
             </div>
 
             <button
+                type="button"
                 disabled={loading}
                 onClick={handleSubmit}
             >

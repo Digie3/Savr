@@ -262,6 +262,38 @@ async function start() {
 
   // Recipe Service - POST recipe
   app.post("/create", requireAuth, upload.any(), async (req, res) => {
+    console.log("========== CREATE ==========");
+    console.log("BODY:");
+    console.log(req.body);
+
+    console.log("BODY KEYS:");
+    console.log(Object.keys(req.body));
+
+    console.log("FILES:");
+    console.log(req.files);
+
+    // INGREDIENT DEBUG
+    console.log("INGREDIENTS:");
+    console.log(req.body.ingredients);
+    console.log("INGREDIENTS TYPE:");
+    console.log(typeof req.body.ingredients);
+    console.log("IS ARRAY:");
+    console.log(Array.isArray(req.body.ingredients));
+
+    // STEP DEBUG
+    console.log("STEP KEYS:");
+    console.log(
+      Object.keys(req.body).filter(key =>
+        key.startsWith("step_text_")
+      )
+    );
+
+    console.log("STEP VALUES:");
+    Object.keys(req.body)
+      .filter(key => key.startsWith("step_text_"))
+      .forEach(key => {
+        console.log(`${key}:`, req.body[key]);
+      });
     try {
       const {
         title,
@@ -276,38 +308,97 @@ async function start() {
       const cookingTime = Number(cooking_time);
       const numServings = Number(num_servings);
 
-      //Correctness Checks
-      if (!title) {
-        return res.status(400).json({ error: "Title is required" });
+      // CHECK: Recipe
+      const errors = [];
+
+      if (!title || !title.trim()) { // TITLE
+        errors.push("Title is required");
       }
       else if (title.length > 100) {
-        return res.status(400).json({ error: "Title can have at most 100 characters" });
+        errors.push("Title can have at most 100 characters");
       }
 
-      if (description && description.length > 1000) {
-        return res.status(400).json({ error: "Description can have at most 1000 characters" });
+      if (description && description.length > 1000) { // DESCRIPTION
+        errors.push("Description can have at most 1000 characters");
       }
 
-      if (Number.isNaN(prepTime)) {
-        return res.status(400).json({ error: "Prep time is required" });
+      if (prep_time === undefined || prep_time === null || prep_time === "") { // PREP TIME
+        errors.push("Preparation time is required");
       }
       else if (prepTime < 0) {
-        return res.status(400).json({ error: "Preparation time cannot be negative" });
+        errors.push("Preparation time cannot be negative");
       }
 
-      if (Number.isNaN(cookingTime)) {
-        return res.status(400).json({ error: "Cooking time is required" });
+      if (cooking_time === undefined || cooking_time === null || cooking_time === "") { // COOKING TIME
+        errors.push("Cooking time is required");
       }
       else if (cookingTime < 0) {
-        return res.status(400).json({ error: "Cooking time cannot be negative" });
+        errors.push("Cooking time cannot be negative");
       }
 
-      if (Number.isNaN(numServings)) {
-        return res.status(400).json({ error: "Number of servings is required" });
+      if (num_servings === undefined || num_servings === null || num_servings === "") { // # OF SERVINGS
+        errors.push("Number of servings is required");
       }
       else if (numServings < 1) {
-        return res.status(400).json({ error: "Number of Servings must be at least 1 servings" });
+        errors.push("Number of Servings must be at least 1 servings");
       }
+
+      //CHECK: Ingredients
+      const submittedIngredients = req.body.ingredients || [];
+
+      if (!Array.isArray(submittedIngredients) || submittedIngredients.length === 0) {
+        errors.push("At least one ingredient is required");
+      }
+
+      for (let i = 0; i < submittedIngredients.length; i++) {
+        const ingredient = submittedIngredients[i];
+        const name = ingredient.name;
+        const stringQty = ingredient.quantity;
+        const quantity = Number(ingredient.quantity);
+        const unit = ingredient.unit;
+
+        if (!name || !name.trim()) {
+          errors.push(`Ingredient ${i + 1} name is required`);
+        }
+
+        if (stringQty === undefined || stringQty === null || stringQty === "") {
+          errors.push(`Ingredient ${i + 1} quantity is required`);
+        }
+        else if (Number(quantity) <= 0) {
+          errors.push(`Ingredient ${i + 1} quantity must be greater than 0`);
+        }
+
+        if (!unit || !unit.trim()) {
+          errors.push(`Ingredient ${i + 1} unit is required`);
+        }
+      }
+
+      // CHECK: Steps
+      const stepKeys = Object.keys(req.body).filter((key) => key.startsWith("step_text_"));
+
+      if (stepKeys.length === 0) {
+        errors.push("At least one recipe step is required");
+      }
+
+      for (const key of stepKeys) {
+        const stepIndex = Number(key.replace("step_text_", ""));
+        const stepText = req.body[key];
+
+        if (!stepText || !stepText.trim()) {
+          errors.push(`Step ${stepIndex + 1} is required`);
+        }
+        else if (stepText.length > 500) {
+          errors.push(`Step ${stepIndex + 1} can have at most 500 characters`);
+        }
+      }
+
+      //CHECK: If an errors are present, return errors list
+      if (errors.length > 0) {
+        return res.status(400).json({ errors });
+      }
+
+      // Start the transaction into db
+      await db.runAsync("BEGIN TRANSACTION");
 
       // RECIPE
       const userId = req.user.id;
@@ -326,9 +417,10 @@ async function start() {
         ]
       );
 
+      const recipeId = recipe.lastID;
+
       // RECIPE IMAGE
       const recipeImage = req.files.find(file => file.fieldname === "recipeImage");
-
       if (recipeImage) {
         const media = await db.runAsync(
           `INSERT INTO Media
@@ -351,28 +443,12 @@ async function start() {
       }
 
       // INGREDIENTS
-      const ingredientIndexes = new Set();
-
-      Object.keys(req.body).forEach(key => {
-        const match = key.match(/^ingredients\[(\d+)\]\[name\]$/);
-
-        if (match) {
-          ingredientIndexes.add(
-            Number(match[1])
-          );
-        }
-      });
-
-      for (const index of ingredientIndexes) {
-        const name = req.body[`ingredients[${index}][name]`];
-        const quantity = Number(
-          req.body[`ingredients[${index}][quantity]`]
-        );
-        const unit = req.body[`ingredients[${index}][unit]`];
-        const otherDesc =
-          req.body[`ingredients[${index}][other_desc]`];
-
-        if (!name) continue;
+      for (let i = 0; i < submittedIngredients.length; i++) {
+        const currIngredient = submittedIngredients[i];
+        const name = currIngredient.name;
+        const quantity = Number(currIngredient.quantity);
+        const unit = currIngredient.unit;
+        const otherDesc = currIngredient.other_desc;
 
         let ingredient = await db.getAsync(
           `SELECT idIngredients
@@ -410,7 +486,7 @@ async function start() {
           ]
         );
 
-        const ingredientImage = req.files.find(file => file.fieldname === `ingredients[${index}][image]`);
+        const ingredientImage = req.files.find(file => file.fieldname === `ingredients[${i}][image]`);
 
         if (ingredientImage) {
           const media = await db.runAsync(
@@ -435,20 +511,9 @@ async function start() {
       }
 
       //RECIPE STEPS
-      const stepKeys = Object.keys(req.body).filter(key => key.startsWith("step_text_"));
-
       for (const key of stepKeys) {
         const stepIndex = Number(key.replace("step_text_", ""));
         const stepText = req.body[key];
-
-        //Correctness Checks 
-        if (!stepText) {
-          return res.status(400).json({error: `Step ${stepNumber + 1} is required`});
-        }
-        else if (stepText.length > 500) {
-          return res.status(400).json({
-            error: `Step ${stepNumber + 1} can have at most 500 characters`});
-        }
 
         const stepResult = await db.runAsync(
           `INSERT INTO RecipeSteps
@@ -488,7 +553,6 @@ async function start() {
       }
 
       // LOG
-      const recipeId = recipe.lastID;
       await logActivity(db, {
         userId: req.user.id,
         username: req.user.username,
@@ -498,12 +562,22 @@ async function start() {
         metadata: { route: "/create" },
       });
 
+      // COMMIT into db
+      await db.runAsync("COMMIT");
+
       return res.status(201).json({
         message: "Posted Recipe successfully",
         recipeId
       });
     } catch (err) {
-      console.error(err);
+      try {
+        await db.runAsync("ROLLBACK");
+      }
+      catch (rollbackErr) {
+        console.error("Rollback failed: ", rollbackErr);
+      }
+
+      console.error("Create Recipe error:", err);
       return res.status(500).json({ error: "Failed to Post Recipe" });
     }
   });

@@ -15,7 +15,20 @@ export async function initDB() {
   db = new sqlite3.Database(dbPath);
 
   // Promisify run/get/all
-  db.runAsync = promisify(db.run.bind(db));
+  db.runAsync = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+      db.run(sql, params, function (err) {
+        if (err) {
+          reject(err);
+        } else {
+          resolve({
+            lastID: this.lastID,
+            changes: this.changes,
+          });
+        }
+      });
+    });
+  };
   db.getAsync = promisify(db.get.bind(db));
   db.allAsync = promisify(db.all.bind(db));
   
