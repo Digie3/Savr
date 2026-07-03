@@ -7,7 +7,7 @@ import bodyParser from "body-parser";
 import cors from "cors";
 import bcrypt from "bcryptjs";
 import { initDB, getDB } from "./db.js";
-import { signToken, requireAuth } from "./auth.js";
+import { getAuthenticatedUser, signToken, requireAuth } from "./auth.js";
 import {
   getAnalyticsSummary,
   getRecentEvents,
@@ -64,6 +64,20 @@ app.use(
   "/uploads",
   express.static("uploads")
 );
+
+function cleanupUploadedFiles(files = []) {
+  for (const file of files) {
+    if (!file.path) continue;
+
+    try {
+      fs.unlinkSync(file.path);
+    } catch (err) {
+      if (err.code !== "ENOENT") {
+        console.error("Failed to clean up uploaded file:", file.path, err);
+      }
+    }
+  }
+}
 
 async function start() {
   await initDB();
@@ -387,6 +401,7 @@ async function start() {
 
       //CHECK: If an errors are present, return errors list
       if (errors.length > 0) {
+        cleanupUploadedFiles(req.files);
         return res.status(400).json({ errors });
       }
 
@@ -563,6 +578,8 @@ async function start() {
         recipeId
       });
     } catch (err) {
+      cleanupUploadedFiles(req.files);
+
       try {
         await db.runAsync("ROLLBACK");
       }
@@ -575,8 +592,18 @@ async function start() {
     }
   });
 
+  async function getOptionalUserId(req) {
+    try {
+      const user = await getAuthenticatedUser(req);
+      return user?.idUsers || null;
+    } catch {
+      return null;
+    }
+  }
+
   app.get("/recipes", async (req, res) => {
     try {
+      const viewerId = await getOptionalUserId(req);
       const recipes = await db.allAsync(`
         SELECT
           Recipes.idRecipes AS id,
@@ -605,11 +632,21 @@ async function start() {
             SELECT ROUND(AVG(Ratings.num_stars), 1)
             FROM Ratings
             WHERE Ratings.Recipes_idRecipes = Recipes.idRecipes
-          ) AS averageRating
+          ) AS averageRating,
+          CASE
+            WHEN ? IS NOT NULL AND EXISTS (
+              SELECT 1
+              FROM SavedRecipes
+              WHERE SavedRecipes.Recipes_idRecipes = Recipes.idRecipes
+                AND SavedRecipes.Users_idUsers = ?
+            )
+            THEN 1
+            ELSE 0
+          END AS isSaved
         FROM Recipes
         JOIN Users ON Recipes.Users_idUsers = Users.idUsers
         ORDER BY datetime(Recipes.date_posted) DESC, Recipes.idRecipes DESC
-      `);
+      `, [viewerId, viewerId]);
 
       return res.json({ recipes });
     } catch (err) {
@@ -621,6 +658,7 @@ async function start() {
   app.get("/recipes/:id", async (req, res) => {
     try {
       const recipeId = Number(req.params.id);
+      const viewerId = await getOptionalUserId(req);
 
       if (!recipeId) {
         return res.status(400).json({ error: "Invalid recipe id" });
@@ -650,12 +688,22 @@ async function start() {
               SELECT ROUND(AVG(Ratings.num_stars), 1)
               FROM Ratings
               WHERE Ratings.Recipes_idRecipes = Recipes.idRecipes
-            ) AS averageRating
+            ) AS averageRating,
+            CASE
+              WHEN ? IS NOT NULL AND EXISTS (
+                SELECT 1
+                FROM SavedRecipes
+                WHERE SavedRecipes.Recipes_idRecipes = Recipes.idRecipes
+                  AND SavedRecipes.Users_idUsers = ?
+              )
+              THEN 1
+              ELSE 0
+            END AS isSaved
           FROM Recipes
           JOIN Users ON Recipes.Users_idUsers = Users.idUsers
           WHERE Recipes.idRecipes = ?
         `,
-        [recipeId]
+        [viewerId, viewerId, recipeId]
       );
 
       if (!recipe) {
@@ -735,6 +783,126 @@ async function start() {
     } catch (err) {
       console.error("Recipe detail error:", err);
       return res.status(500).json({ error: "Unable to load recipe" });
+    }
+  });
+
+  app.get("/saved-recipes", requireAuth, async (req, res) => {
+    try {
+      const recipes = await db.allAsync(
+        `
+          SELECT
+            Recipes.idRecipes AS id,
+            Recipes.title,
+            Recipes.description,
+            Recipes.prep_time AS prepTime,
+            Recipes.cooking_time AS cookingTime,
+            Recipes.num_servings AS numServings,
+            Recipes.date_posted AS datePosted,
+            Users.idUsers AS creatorId,
+            Users.username AS creatorName,
+            SavedRecipes.bookmarked_date AS bookmarkedDate,
+            1 AS isSaved,
+            (
+              SELECT Media.media_url
+              FROM RecipeMedia
+              JOIN Media ON RecipeMedia.Media_idMedia = Media.idMedia
+              WHERE RecipeMedia.Recipes_idRecipes = Recipes.idRecipes
+              ORDER BY Media.display_order ASC, Media.idMedia ASC
+              LIMIT 1
+            ) AS imageUrl,
+            (
+              SELECT COUNT(*)
+              FROM Comments
+              WHERE Comments.Recipes_idRecipes = Recipes.idRecipes
+            ) AS commentCount,
+            (
+              SELECT ROUND(AVG(Ratings.num_stars), 1)
+              FROM Ratings
+              WHERE Ratings.Recipes_idRecipes = Recipes.idRecipes
+            ) AS averageRating
+          FROM SavedRecipes
+          JOIN Recipes ON SavedRecipes.Recipes_idRecipes = Recipes.idRecipes
+          JOIN Users ON Recipes.Users_idUsers = Users.idUsers
+          WHERE SavedRecipes.Users_idUsers = ?
+          ORDER BY datetime(SavedRecipes.bookmarked_date) DESC, Recipes.idRecipes DESC
+        `,
+        [req.user.id]
+      );
+
+      return res.json({ recipes });
+    } catch (err) {
+      console.error("Saved recipes error:", err);
+      return res.status(500).json({ error: "Unable to load saved recipes" });
+    }
+  });
+
+  app.post("/recipes/:id/save", requireAuth, async (req, res) => {
+    try {
+      const recipeId = Number(req.params.id);
+
+      if (!recipeId) {
+        return res.status(400).json({ error: "Invalid recipe id" });
+      }
+
+      const recipe = await db.getAsync(
+        `SELECT idRecipes FROM Recipes WHERE idRecipes = ?`,
+        [recipeId]
+      );
+
+      if (!recipe) {
+        return res.status(404).json({ error: "Recipe not found" });
+      }
+
+      await db.runAsync(
+        `INSERT OR IGNORE INTO SavedRecipes
+         (Users_idUsers, Recipes_idRecipes, bookmarked_date)
+         VALUES (?, ?, datetime('now'))`,
+        [req.user.id, recipeId]
+      );
+
+      await logActivity(db, {
+        userId: req.user.id,
+        username: req.user.username,
+        eventType: "recipe_save",
+        entityType: "recipe",
+        entityId: recipeId,
+        metadata: { route: "/recipes/:id/save" },
+      });
+
+      return res.json({ saved: true });
+    } catch (err) {
+      console.error("Save recipe error:", err);
+      return res.status(500).json({ error: "Unable to save recipe" });
+    }
+  });
+
+  app.delete("/recipes/:id/save", requireAuth, async (req, res) => {
+    try {
+      const recipeId = Number(req.params.id);
+
+      if (!recipeId) {
+        return res.status(400).json({ error: "Invalid recipe id" });
+      }
+
+      await db.runAsync(
+        `DELETE FROM SavedRecipes
+         WHERE Users_idUsers = ? AND Recipes_idRecipes = ?`,
+        [req.user.id, recipeId]
+      );
+
+      await logActivity(db, {
+        userId: req.user.id,
+        username: req.user.username,
+        eventType: "recipe_unsave",
+        entityType: "recipe",
+        entityId: recipeId,
+        metadata: { route: "/recipes/:id/save" },
+      });
+
+      return res.json({ saved: false });
+    } catch (err) {
+      console.error("Unsave recipe error:", err);
+      return res.status(500).json({ error: "Unable to unsave recipe" });
     }
   });
 

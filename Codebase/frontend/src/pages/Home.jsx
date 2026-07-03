@@ -1,26 +1,13 @@
 import { useEffect, useState } from "react";
 import { Link } from "react-router-dom";
 
+import { useAuth } from "../auth/useAuth";
+import RecipeCard from "../components/RecipeCard";
 import { trackActivity } from "../lib/activity";
-import { buildMediaUrl, fetchRecipes } from "../lib/recipes";
-
-function formatDate(value) {
-  if (!value) return "Recently";
-
-  return new Intl.DateTimeFormat("en-CA", {
-    month: "short",
-    day: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/Toronto",
-  }).format(new Date(`${value.replace(" ", "T")}Z`));
-}
-
-function initials(name) {
-  return (name || "U").trim().slice(0, 1).toUpperCase();
-}
+import { fetchRecipes, saveRecipe, unsaveRecipe } from "../lib/recipes";
 
 function Home() {
+  const { token } = useAuth();
   const [recipes, setRecipes] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
@@ -37,7 +24,7 @@ function Home() {
           metadata: { path: "/" },
         });
 
-        const data = await fetchRecipes();
+        const data = await fetchRecipes(token);
 
         if (isMounted) {
           setRecipes(data.recipes || []);
@@ -55,7 +42,27 @@ function Home() {
     return () => {
       isMounted = false;
     };
-  }, []);
+  }, [token]);
+
+  async function handleSaveToggle(recipeId, isSaved) {
+    try {
+      if (isSaved) {
+        await unsaveRecipe(recipeId, token);
+      } else {
+        await saveRecipe(recipeId, token);
+      }
+
+      setRecipes((currentRecipes) =>
+        currentRecipes.map((recipe) =>
+          recipe.id === recipeId
+            ? { ...recipe, isSaved: isSaved ? 0 : 1 }
+            : recipe
+        )
+      );
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   return (
     <main className="feed-page">
@@ -80,40 +87,11 @@ function Home() {
 
       <section className="feed-list">
         {recipes.map((recipe) => (
-          <article className="feed-card" key={recipe.id}>
-            <div className="feed-card-vote">
-              <span>★</span>
-              <strong>{recipe.averageRating || "-"}</strong>
-            </div>
-
-            <div className="feed-card-main">
-              <Link className="creator-strip" to={`/profile/${recipe.creatorId}`}>
-                <span className="avatar">{initials(recipe.creatorName)}</span>
-                <span>
-                  <strong>{recipe.creatorName}</strong>
-                  <small>{formatDate(recipe.datePosted)}</small>
-                </span>
-              </Link>
-
-              <Link className="recipe-post-link" to={`/recipes/${recipe.id}`}>
-                <h2>{recipe.title}</h2>
-                {recipe.description && <p>{recipe.description}</p>}
-                {recipe.imageUrl && (
-                  <img
-                    className="feed-recipe-image"
-                    src={buildMediaUrl(recipe.imageUrl)}
-                    alt={recipe.title}
-                  />
-                )}
-              </Link>
-
-              <div className="feed-card-meta">
-                <span>{recipe.prepTime + recipe.cookingTime} min</span>
-                <span>{recipe.numServings} servings</span>
-                <span>{recipe.commentCount} comments</span>
-              </div>
-            </div>
-          </article>
+          <RecipeCard
+            key={recipe.id}
+            recipe={recipe}
+            onSaveToggle={handleSaveToggle}
+          />
         ))}
       </section>
     </main>

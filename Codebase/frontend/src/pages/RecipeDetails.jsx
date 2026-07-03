@@ -1,7 +1,8 @@
 import { useEffect, useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 
-import { buildMediaUrl, fetchRecipeDetail } from "../lib/recipes";
+import { useAuth } from "../auth/useAuth";
+import { buildMediaUrl, fetchRecipeDetail, saveRecipe, unsaveRecipe } from "../lib/recipes";
 
 function formatDate(value) {
   if (!value) return "";
@@ -22,6 +23,8 @@ function initials(name) {
 
 function RecipeDetails() {
   const { recipeId } = useParams();
+  const navigate = useNavigate();
+  const { token } = useAuth();
   const [recipe, setRecipe] = useState(null);
   const [ingredients, setIngredients] = useState([]);
   const [steps, setSteps] = useState([]);
@@ -34,7 +37,7 @@ function RecipeDetails() {
 
     async function loadRecipe() {
       try {
-        const data = await fetchRecipeDetail(recipeId);
+        const data = await fetchRecipeDetail(recipeId, token);
 
         if (isMounted) {
           setRecipe(data.recipe);
@@ -55,7 +58,28 @@ function RecipeDetails() {
     return () => {
       isMounted = false;
     };
-  }, [recipeId]);
+  }, [recipeId, token]);
+
+  async function handleSaveToggle() {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    try {
+      if (recipe.isSaved) {
+        await unsaveRecipe(recipe.id, token);
+        setRecipe((currentRecipe) => ({ ...currentRecipe, isSaved: 0 }));
+      } else {
+        await saveRecipe(recipe.id, token);
+        setRecipe((currentRecipe) => ({ ...currentRecipe, isSaved: 1 }));
+      }
+
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    }
+  }
 
   if (loading) {
     return <main className="recipe-detail-page"><p>Loading recipe...</p></main>;
@@ -85,7 +109,17 @@ function RecipeDetails() {
           </span>
         </div>
 
-        <h1>{recipe.title}</h1>
+        <div className="recipe-detail-title-row">
+          <h1>{recipe.title}</h1>
+          <button
+            className={`save-recipe-btn${recipe.isSaved ? " is-saved" : ""}`}
+            type="button"
+            onClick={handleSaveToggle}
+          >
+            {recipe.isSaved ? "Saved" : "Save"}
+          </button>
+        </div>
+
         {recipe.description && <p className="recipe-detail-description">{recipe.description}</p>}
 
         {recipe.imageUrl && (

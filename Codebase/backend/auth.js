@@ -1,5 +1,6 @@
 import jwt from "jsonwebtoken";
 import crypto from "crypto";
+import { getDB } from "./db.js";
 
 // Secret and lifetime come from the environment (see .env / .env.example).
 // The fallback only exists so the server still boots in dev if .env is missing.
@@ -16,9 +17,26 @@ export function signToken(user) {
   );
 }
 
+export async function getAuthenticatedUser(req) {
+  const header = req.headers.authorization || "";
+  const [scheme, token] = header.split(" ");
+
+  if (scheme !== "Bearer" || !token) {
+    return null;
+  }
+
+  const payload = jwt.verify(token, JWT_SECRET);
+  const db = getDB();
+
+  return db.getAsync(
+    `SELECT idUsers, username FROM Users WHERE idUsers = ?`,
+    [payload.sub]
+  );
+}
+
 // Express middleware: require a valid "Authorization: Bearer <token>" header.
 // On success it attaches { id, username } to req.user and calls next().
-export function requireAuth(req, res, next) {
+export async function requireAuth(req, res, next) {
   const header = req.headers.authorization || "";
   const [scheme, token] = header.split(" ");
 
@@ -27,8 +45,13 @@ export function requireAuth(req, res, next) {
   }
 
   try {
-    const payload = jwt.verify(token, JWT_SECRET);
-    req.user = { id: payload.sub, username: payload.username };
+    const user = await getAuthenticatedUser(req);
+
+    if (!user) {
+      return res.status(401).json({ error: "User no longer exists. Please log in again." });
+    }
+
+    req.user = { id: user.idUsers, username: user.username };
     next();
   } catch {
     return res.status(401).json({ error: "Invalid or expired token" });

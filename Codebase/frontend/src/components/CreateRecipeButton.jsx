@@ -1,7 +1,9 @@
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { createRecipe } from "../lib/createRecipe";
 
 function CreateRecipeButton() {
+    const navigate = useNavigate();
     const [title, setTitle] = useState("");
     const [description, setDescription] = useState("");
     const [prepTime, setPrepTime] = useState("");
@@ -79,6 +81,7 @@ function CreateRecipeButton() {
             }
 
             alert("Recipe created successfully!");
+            navigate(`/recipes/${outcome.data.recipeId}`);
         }
         catch (err) {
             console.error(err);
