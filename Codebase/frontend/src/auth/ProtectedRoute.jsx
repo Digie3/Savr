@@ -1,5 +1,5 @@
 import { Navigate } from "react-router-dom";
-import { useAuth } from "./AuthContext";
+import { useAuth } from "./useAuth";
 
 // Wrap any route that should require a logged-in user.
 // While the token is still being validated we wait; if there's no user,

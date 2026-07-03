@@ -575,6 +575,169 @@ async function start() {
     }
   });
 
+  app.get("/recipes", async (req, res) => {
+    try {
+      const recipes = await db.allAsync(`
+        SELECT
+          Recipes.idRecipes AS id,
+          Recipes.title,
+          Recipes.description,
+          Recipes.prep_time AS prepTime,
+          Recipes.cooking_time AS cookingTime,
+          Recipes.num_servings AS numServings,
+          Recipes.date_posted AS datePosted,
+          Users.idUsers AS creatorId,
+          Users.username AS creatorName,
+          (
+            SELECT Media.media_url
+            FROM RecipeMedia
+            JOIN Media ON RecipeMedia.Media_idMedia = Media.idMedia
+            WHERE RecipeMedia.Recipes_idRecipes = Recipes.idRecipes
+            ORDER BY Media.display_order ASC, Media.idMedia ASC
+            LIMIT 1
+          ) AS imageUrl,
+          (
+            SELECT COUNT(*)
+            FROM Comments
+            WHERE Comments.Recipes_idRecipes = Recipes.idRecipes
+          ) AS commentCount,
+          (
+            SELECT ROUND(AVG(Ratings.num_stars), 1)
+            FROM Ratings
+            WHERE Ratings.Recipes_idRecipes = Recipes.idRecipes
+          ) AS averageRating
+        FROM Recipes
+        JOIN Users ON Recipes.Users_idUsers = Users.idUsers
+        ORDER BY datetime(Recipes.date_posted) DESC, Recipes.idRecipes DESC
+      `);
+
+      return res.json({ recipes });
+    } catch (err) {
+      console.error("Recipe feed error:", err);
+      return res.status(500).json({ error: "Unable to load recipes" });
+    }
+  });
+
+  app.get("/recipes/:id", async (req, res) => {
+    try {
+      const recipeId = Number(req.params.id);
+
+      if (!recipeId) {
+        return res.status(400).json({ error: "Invalid recipe id" });
+      }
+
+      const recipe = await db.getAsync(
+        `
+          SELECT
+            Recipes.idRecipes AS id,
+            Recipes.title,
+            Recipes.description,
+            Recipes.prep_time AS prepTime,
+            Recipes.cooking_time AS cookingTime,
+            Recipes.num_servings AS numServings,
+            Recipes.date_posted AS datePosted,
+            Users.idUsers AS creatorId,
+            Users.username AS creatorName,
+            (
+              SELECT Media.media_url
+              FROM RecipeMedia
+              JOIN Media ON RecipeMedia.Media_idMedia = Media.idMedia
+              WHERE RecipeMedia.Recipes_idRecipes = Recipes.idRecipes
+              ORDER BY Media.display_order ASC, Media.idMedia ASC
+              LIMIT 1
+            ) AS imageUrl,
+            (
+              SELECT ROUND(AVG(Ratings.num_stars), 1)
+              FROM Ratings
+              WHERE Ratings.Recipes_idRecipes = Recipes.idRecipes
+            ) AS averageRating
+          FROM Recipes
+          JOIN Users ON Recipes.Users_idUsers = Users.idUsers
+          WHERE Recipes.idRecipes = ?
+        `,
+        [recipeId]
+      );
+
+      if (!recipe) {
+        return res.status(404).json({ error: "Recipe not found" });
+      }
+
+      const ingredients = await db.allAsync(
+        `
+          SELECT
+            Ingredients.idIngredients AS id,
+            Ingredients.name,
+            Recipes_has_Ingredients.quantity,
+            Recipes_has_Ingredients.unit,
+            Recipes_has_Ingredients.other_desc AS otherDesc,
+            (
+              SELECT Media.media_url
+              FROM IngredientMedia
+              JOIN Media ON IngredientMedia.Media_idMedia = Media.idMedia
+              WHERE IngredientMedia.Ingredients_idIngredients = Ingredients.idIngredients
+              ORDER BY Media.display_order ASC, Media.idMedia ASC
+              LIMIT 1
+            ) AS imageUrl
+          FROM Recipes_has_Ingredients
+          JOIN Ingredients
+            ON Recipes_has_Ingredients.Ingredients_idIngredients = Ingredients.idIngredients
+          WHERE Recipes_has_Ingredients.Recipes_idRecipes = ?
+          ORDER BY Ingredients.name ASC
+        `,
+        [recipeId]
+      );
+
+      const steps = await db.allAsync(
+        `
+          SELECT
+            RecipeSteps.idRecipeSteps AS id,
+            RecipeSteps.step_number AS stepNumber,
+            RecipeSteps.instruction_text AS instructionText,
+            (
+              SELECT Media.media_url
+              FROM RecipeStepMedia
+              JOIN Media ON RecipeStepMedia.Media_idMedia = Media.idMedia
+              WHERE RecipeStepMedia.RecipeSteps_idRecipeSteps = RecipeSteps.idRecipeSteps
+              ORDER BY Media.display_order ASC, Media.idMedia ASC
+              LIMIT 1
+            ) AS imageUrl
+          FROM RecipeSteps
+          WHERE RecipeSteps.Recipes_idRecipes = ?
+          ORDER BY RecipeSteps.step_number ASC
+        `,
+        [recipeId]
+      );
+
+      const comments = await db.allAsync(
+        `
+          SELECT
+            Comments.idComments AS id,
+            Comments.description,
+            Comments.date_posted AS datePosted,
+            Users.idUsers AS creatorId,
+            Users.username AS creatorName
+          FROM Comments
+          JOIN Users ON Comments.Users_idUsers = Users.idUsers
+          WHERE Comments.Recipes_idRecipes = ?
+          ORDER BY datetime(Comments.date_posted) DESC, Comments.idComments DESC
+        `,
+        [recipeId]
+      );
+
+      await logActivity(db, {
+        eventType: "recipe_view",
+        entityType: "recipe",
+        entityId: recipeId,
+        metadata: { route: "/recipes/:id" },
+      });
+
+      return res.json({ recipe, ingredients, steps, comments });
+    } catch (err) {
+      console.error("Recipe detail error:", err);
+      return res.status(500).json({ error: "Unable to load recipe" });
+    }
+  });
+
   app.post("/activity", async (req, res) => {
     try {
       await logActivity(db, req.body || {});

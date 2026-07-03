@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 
 import { trackActivity } from "../lib/activity";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../auth/useAuth";
 
 // Links shown to everyone. Login/Register/Logout are handled separately
 // below because they depend on whether the user is signed in.

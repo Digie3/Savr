@@ -19,14 +19,17 @@ function App() {
       <Navbar />
 
       <Routes>
-        <Route path="/" element={<Landing />} />
+        <Route path="/" element={<Home />} />
+        <Route path="/landing" element={<Landing />} />
         <Route path="/home" element={<Home />} />
         <Route path="/login" element={<Login />} />
         <Route path="/register" element={<Register />} />
         <Route path="/profile" element={<ProtectedRoute><Profile /></ProtectedRoute>} />
+        <Route path="/profile/:userId" element={<Profile />} />
         <Route path="/saved" element={<ProtectedRoute><SavedRecipes /></ProtectedRoute>} />
         <Route path="/create" element={<ProtectedRoute><CreateRecipe /></ProtectedRoute>} />
-        <Route path="/recipe" element={<RecipeDetails />} />
+        <Route path="/recipes/:recipeId" element={<RecipeDetails />} />
+        <Route path="/recipe" element={<Home />} />
         <Route path="/analytics" element={<Analytics />} />
       </Routes>
     </BrowserRouter>

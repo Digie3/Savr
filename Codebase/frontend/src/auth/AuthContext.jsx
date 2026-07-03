@@ -1,7 +1,7 @@
-import { createContext, useContext, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 import { API_BASE } from "../api";
+import { AuthContext } from "./authContext";
 
-const AuthContext = createContext(null);
 const TOKEN_KEY = "savr_token";
 // The lakehouse analytics helper (lib/activity.js) reads the logged-in user
 // from this key, so we keep it in sync with our auth state.
@@ -11,31 +11,29 @@ const USER_KEY = "savrUser";
 export function AuthProvider({ children }) {
   const [token, setToken] = useState(() => localStorage.getItem(TOKEN_KEY));
   const [user, setUser] = useState(null);
-  const [loading, setLoading] = useState(true);
+  const [loading, setLoading] = useState(() => Boolean(localStorage.getItem(TOKEN_KEY)));
 
   // Whenever we have a token, validate it against the backend (/me).
   // If it's missing/expired we clear it so the UI shows logged-out state.
   useEffect(() => {
     if (!token) {
-      setUser(null);
-      setLoading(false);
       return;
     }
 
-    setLoading(true);
     fetch(`${API_BASE}/me`, { headers: { Authorization: `Bearer ${token}` } })
-      .then((r) => (r.ok ? r.json() : Promise.reject()))
+      .then((r) => {
+        if (r.ok) return r.json();
+        throw new Error(String(r.status));
+      })
       .then((data) => {
         setUser(data.user);
         localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       })
-      .catch((err) => {
-        if (err.message === "401") {
-          localStorage.removeItem(TOKEN_KEY);
-          localStorage.removeItem(USER_KEY);
-          setToken(null);
-          setUser(null);
-        }
+      .catch(() => {
+        localStorage.removeItem(TOKEN_KEY);
+        localStorage.removeItem(USER_KEY);
+        setToken(null);
+        setUser(null);
       })
       .finally(() => setLoading(false));
   }, [token]);
@@ -58,7 +56,7 @@ export function AuthProvider({ children }) {
         });
       }
     } catch {
-      // Ignore network errors — we clear the local session regardless.
+      // Ignore network errors; local session cleanup still happens.
     }
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USER_KEY);
@@ -71,9 +69,4 @@ export function AuthProvider({ children }) {
       {children}
     </AuthContext.Provider>
   );
-}
-
-// Convenience hook so components can read auth state with useAuth().
-export function useAuth() {
-  return useContext(AuthContext);
 }

@@ -1,7 +1,7 @@
 import { Link, useNavigate } from "react-router-dom";
 
 import { trackActivity } from "../lib/activity";
-import { useAuth } from "../auth/AuthContext";
+import { useAuth } from "../auth/useAuth";
 import { API_BASE } from "../api";
 
 function Login() {
