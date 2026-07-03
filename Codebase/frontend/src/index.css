@@ -676,6 +676,11 @@ body {
   line-height: 1.6;
 }
 
+.preserve-whitespace,
+.step-detail-text {
+  white-space: pre-wrap;
+}
+
 .recipe-detail-image {
   max-height: 520px;
 }

@@ -120,7 +120,11 @@ function RecipeDetails() {
           </button>
         </div>
 
-        {recipe.description && <p className="recipe-detail-description">{recipe.description}</p>}
+        {recipe.description && (
+          <p className="recipe-detail-description preserve-whitespace">
+            {recipe.description}
+          </p>
+        )}
 
         {recipe.imageUrl && (
           <img
@@ -165,7 +169,7 @@ function RecipeDetails() {
             {steps.map((step) => (
               <div className="recipe-step-row" key={step.id}>
                 <span className="step-number">{step.stepNumber}</span>
-                <p>{step.instructionText}</p>
+                <p className="step-detail-text">{step.instructionText}</p>
                 {step.imageUrl && (
                   <img src={buildMediaUrl(step.imageUrl)} alt={`Step ${step.stepNumber}`} />
                 )}
