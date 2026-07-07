@@ -2,19 +2,34 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { useAuth } from "../auth/useAuth";
+import { createComment, submitRating } from "../lib/commentRatingService";
 import { buildMediaUrl, fetchRecipeDetail, saveRecipe, unsaveRecipe } from "../lib/recipes";
 
 function formatDate(value) {
   if (!value) return "";
 
-  return new Intl.DateTimeFormat("en-CA", {
-    month: "short",
-    day: "numeric",
-    year: "numeric",
-    hour: "numeric",
-    minute: "2-digit",
-    timeZone: "America/Toronto",
-  }).format(new Date(`${value.replace(" ", "T")}Z`));
+  try {
+    const normalizedValue = String(value).trim();
+    const normalizedDate = normalizedValue.includes("T")
+      ? normalizedValue
+      : normalizedValue.replace(" ", "T");
+    const parsedDate = new Date(normalizedDate.endsWith("Z") ? normalizedDate : `${normalizedDate}Z`);
+
+    if (Number.isNaN(parsedDate.getTime())) {
+      return "";
+    }
+
+    return new Intl.DateTimeFormat("en-CA", {
+      month: "short",
+      day: "numeric",
+      year: "numeric",
+      hour: "numeric",
+      minute: "2-digit",
+      timeZone: "America/Toronto",
+    }).format(parsedDate);
+  } catch {
+    return "";
+  }
 }
 
 function initials(name) {
@@ -31,6 +46,9 @@ function RecipeDetails() {
   const [comments, setComments] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+  const [commentText, setCommentText] = useState("");
+  const [rating, setRating] = useState("");
+  const [submitting, setSubmitting] = useState(false);
 
   useEffect(() => {
     let isMounted = true;
@@ -78,6 +96,60 @@ function RecipeDetails() {
       setError("");
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function handleCommentSubmit(event) {
+    event.preventDefault();
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const description = commentText.trim();
+    if (!description) {
+      setError("Please enter a comment.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const result = await createComment(recipe.id, description, token);
+      setComments((currentComments) => [result.comment, ...currentComments]);
+      setCommentText("");
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleRatingSubmit(event) {
+    event.preventDefault();
+
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    const nextRating = Number(rating);
+    if (!Number.isInteger(nextRating) || nextRating < 1 || nextRating > 5) {
+      setError("Please choose a rating from 1 to 5.");
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const result = await submitRating(recipe.id, nextRating, token);
+      setRecipe((currentRecipe) => ({ ...currentRecipe, averageRating: result.rating.averageRating }));
+      setRating("");
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -180,11 +252,35 @@ function RecipeDetails() {
       </section>
 
       <section className="comments-panel">
-        <h2>Comments</h2>
-        <div className="comment-box-placeholder">
+        <h2>Comments & Ratings</h2>
+
+        <form className="comment-box-placeholder" onSubmit={handleCommentSubmit}>
           <span className="avatar">+</span>
-          <p>Comment posting will connect here. This area is reserved for the discussion thread.</p>
-        </div>
+          <div style={{ flex: 1 }}>
+            <textarea
+              value={commentText}
+              onChange={(event) => setCommentText(event.target.value)}
+              rows={3}
+              placeholder="Share your thoughts about this recipe"
+            />
+            <div className="comment-actions">
+              <button type="submit" disabled={submitting}>Post comment</button>
+            </div>
+          </div>
+        </form>
+
+        <form className="rating-form" onSubmit={handleRatingSubmit}>
+          <label htmlFor="recipe-rating">Your rating</label>
+          <select id="recipe-rating" value={rating} onChange={(event) => setRating(event.target.value)}>
+            <option value="">Select</option>
+            <option value="1">1 star</option>
+            <option value="2">2 stars</option>
+            <option value="3">3 stars</option>
+            <option value="4">4 stars</option>
+            <option value="5">5 stars</option>
+          </select>
+          <button type="submit" disabled={submitting}>Submit rating</button>
+        </form>
 
         {comments.length === 0 && <p className="muted-text">No comments yet.</p>}
         {comments.map((comment) => (

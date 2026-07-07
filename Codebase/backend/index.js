@@ -836,6 +836,119 @@ async function start() {
     }
   });
 
+  app.post("/recipes/:id/comments", requireAuth, async (req, res) => {
+    try {
+      const recipeId = Number(req.params.id);
+      const description = (req.body?.description || "").trim();
+
+      if (!recipeId) {
+        return res.status(400).json({ error: "Invalid recipe id" });
+      }
+
+      if (!description) {
+        return res.status(400).json({ error: "Comment cannot be empty" });
+      }
+
+      const recipe = await db.getAsync(
+        `SELECT idRecipes FROM Recipes WHERE idRecipes = ?`,
+        [recipeId]
+      );
+
+      if (!recipe) {
+        return res.status(404).json({ error: "Recipe not found" });
+      }
+
+      const commentResult = await db.runAsync(
+        `INSERT INTO Comments (Recipes_idRecipes, Users_idUsers, description, date_posted)
+         VALUES (?, ?, ?, datetime('now'))`,
+        [recipeId, req.user.id, description]
+      );
+
+      await logActivity(db, {
+        userId: req.user.id,
+        username: req.user.username,
+        eventType: "comment_create",
+        entityType: "comment",
+        entityId: commentResult.lastID,
+        metadata: { route: "/recipes/:id/comments" },
+      });
+
+      return res.status(201).json({
+        message: "Comment posted successfully",
+        comment: {
+          id: commentResult.lastID,
+          description,
+          creatorId: req.user.id,
+          creatorName: req.user.username,
+          datePosted: new Date().toISOString(),
+        },
+      });
+    } catch (err) {
+      console.error("Comment create error:", err);
+      return res.status(500).json({ error: "Unable to post comment" });
+    }
+  });
+
+  app.post("/recipes/:id/rating", requireAuth, async (req, res) => {
+    try {
+      const recipeId = Number(req.params.id);
+      const stars = Number(req.body?.stars);
+
+      if (!recipeId) {
+        return res.status(400).json({ error: "Invalid recipe id" });
+      }
+
+      if (!Number.isInteger(stars) || stars < 1 || stars > 5) {
+        return res.status(400).json({ error: "Rating must be between 1 and 5" });
+      }
+
+      const recipe = await db.getAsync(
+        `SELECT idRecipes FROM Recipes WHERE idRecipes = ?`,
+        [recipeId]
+      );
+
+      if (!recipe) {
+        return res.status(404).json({ error: "Recipe not found" });
+      }
+
+      const result = await db.runAsync(
+        `INSERT INTO Ratings (Recipes_idRecipes, Users_idUsers, num_stars, date_posted)
+         VALUES (?, ?, ?, datetime('now'))
+         ON CONFLICT(Recipes_idRecipes, Users_idUsers) DO UPDATE SET
+           num_stars = excluded.num_stars,
+           date_posted = datetime('now')`,
+        [recipeId, req.user.id, stars]
+      );
+
+      await logActivity(db, {
+        userId: req.user.id,
+        username: req.user.username,
+        eventType: "rating_submit",
+        entityType: "rating",
+        entityId: recipeId,
+        metadata: { route: "/recipes/:id/rating" },
+      });
+
+      const averageRating = await db.getAsync(
+        `SELECT ROUND(AVG(num_stars), 1) AS averageRating
+         FROM Ratings
+         WHERE Recipes_idRecipes = ?`,
+        [recipeId]
+      );
+
+      return res.json({
+        message: "Rating submitted successfully",
+        rating: {
+          stars,
+          averageRating: averageRating?.averageRating ?? null,
+        },
+      });
+    } catch (err) {
+      console.error("Rating submit error:", err);
+      return res.status(500).json({ error: "Unable to submit rating" });
+    }
+  });
+
   app.post("/recipes/:id/save", requireAuth, async (req, res) => {
     try {
       const recipeId = Number(req.params.id);
