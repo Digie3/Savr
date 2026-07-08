@@ -9,6 +9,8 @@ const VALID_EVENT_TYPES = new Set([
   "recipe_save",
   "recipe_unsave",
   "comment_create",
+  "comment_edit",
+  "comment_delete",
   "rating_submit",
   "follow",
   "unfollow",

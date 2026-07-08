@@ -744,6 +744,17 @@ async function start() {
               FROM Ratings
               WHERE Ratings.Recipes_idRecipes = Recipes.idRecipes
             ) AS averageRating,
+            (
+              SELECT COUNT(*)
+              FROM Ratings
+              WHERE Ratings.Recipes_idRecipes = Recipes.idRecipes
+            ) AS ratingCount,
+            (
+              SELECT num_stars
+              FROM Ratings
+              WHERE Ratings.Recipes_idRecipes = Recipes.idRecipes
+                AND Ratings.Users_idUsers = ?
+            ) AS userRating,
             CASE
               WHEN ? IS NOT NULL AND EXISTS (
                 SELECT 1
@@ -758,7 +769,7 @@ async function start() {
           JOIN Users ON Recipes.Users_idUsers = Users.idUsers
           WHERE Recipes.idRecipes = ?
         `,
-        [viewerId, viewerId, recipeId]
+        [viewerId, viewerId, viewerId, recipeId]
       );
 
       if (!recipe) {
@@ -891,6 +902,9 @@ async function start() {
     }
   });
 
+  // Comments longer than this are rejected on both create and edit.
+  const MAX_COMMENT_LENGTH = 1000;
+
   app.post("/recipes/:id/comments", requireAuth, async (req, res) => {
     try {
       const recipeId = Number(req.params.id);
@@ -902,6 +916,12 @@ async function start() {
 
       if (!description) {
         return res.status(400).json({ error: "Comment cannot be empty" });
+      }
+
+      if (description.length > MAX_COMMENT_LENGTH) {
+        return res.status(400).json({
+          error: `Comment cannot exceed ${MAX_COMMENT_LENGTH} characters`,
+        });
       }
 
       const recipe = await db.getAsync(
@@ -941,6 +961,113 @@ async function start() {
     } catch (err) {
       console.error("Comment create error:", err);
       return res.status(500).json({ error: "Unable to post comment" });
+    }
+  });
+
+  // Edit a comment. Only the comment's author may edit it (checked server-side).
+  app.put("/recipes/:id/comments/:commentId", requireAuth, async (req, res) => {
+    try {
+      const recipeId = Number(req.params.id);
+      const commentId = Number(req.params.commentId);
+      const description = (req.body?.description || "").trim();
+
+      if (!recipeId || !commentId) {
+        return res.status(400).json({ error: "Invalid recipe or comment id" });
+      }
+
+      if (!description) {
+        return res.status(400).json({ error: "Comment cannot be empty" });
+      }
+
+      if (description.length > MAX_COMMENT_LENGTH) {
+        return res.status(400).json({
+          error: `Comment cannot exceed ${MAX_COMMENT_LENGTH} characters`,
+        });
+      }
+
+      const comment = await db.getAsync(
+        `SELECT idComments, Users_idUsers, Recipes_idRecipes, date_posted
+         FROM Comments WHERE idComments = ?`,
+        [commentId]
+      );
+
+      if (!comment || comment.Recipes_idRecipes !== recipeId) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+
+      if (comment.Users_idUsers !== req.user.id) {
+        return res.status(403).json({ error: "You can only edit your own comment" });
+      }
+
+      await db.runAsync(
+        `UPDATE Comments SET description = ? WHERE idComments = ?`,
+        [description, commentId]
+      );
+
+      await logActivity(db, {
+        userId: req.user.id,
+        username: req.user.username,
+        eventType: "comment_edit",
+        entityType: "comment",
+        entityId: commentId,
+        metadata: { route: "/recipes/:id/comments/:commentId" },
+      });
+
+      return res.json({
+        message: "Comment updated successfully",
+        comment: {
+          id: commentId,
+          description,
+          creatorId: req.user.id,
+          creatorName: req.user.username,
+          datePosted: comment.date_posted,
+        },
+      });
+    } catch (err) {
+      console.error("Comment edit error:", err);
+      return res.status(500).json({ error: "Unable to update comment" });
+    }
+  });
+
+  // Delete a comment. Only the comment's author may delete it (checked server-side).
+  app.delete("/recipes/:id/comments/:commentId", requireAuth, async (req, res) => {
+    try {
+      const recipeId = Number(req.params.id);
+      const commentId = Number(req.params.commentId);
+
+      if (!recipeId || !commentId) {
+        return res.status(400).json({ error: "Invalid recipe or comment id" });
+      }
+
+      const comment = await db.getAsync(
+        `SELECT idComments, Users_idUsers, Recipes_idRecipes
+         FROM Comments WHERE idComments = ?`,
+        [commentId]
+      );
+
+      if (!comment || comment.Recipes_idRecipes !== recipeId) {
+        return res.status(404).json({ error: "Comment not found" });
+      }
+
+      if (comment.Users_idUsers !== req.user.id) {
+        return res.status(403).json({ error: "You can only delete your own comment" });
+      }
+
+      await db.runAsync(`DELETE FROM Comments WHERE idComments = ?`, [commentId]);
+
+      await logActivity(db, {
+        userId: req.user.id,
+        username: req.user.username,
+        eventType: "comment_delete",
+        entityType: "comment",
+        entityId: commentId,
+        metadata: { route: "/recipes/:id/comments/:commentId" },
+      });
+
+      return res.json({ message: "Comment deleted successfully", id: commentId });
+    } catch (err) {
+      console.error("Comment delete error:", err);
+      return res.status(500).json({ error: "Unable to delete comment" });
     }
   });
 
@@ -984,8 +1111,8 @@ async function start() {
         metadata: { route: "/recipes/:id/rating" },
       });
 
-      const averageRating = await db.getAsync(
-        `SELECT ROUND(AVG(num_stars), 1) AS averageRating
+      const summary = await db.getAsync(
+        `SELECT ROUND(AVG(num_stars), 1) AS averageRating, COUNT(*) AS ratingCount
          FROM Ratings
          WHERE Recipes_idRecipes = ?`,
         [recipeId]
@@ -995,7 +1122,8 @@ async function start() {
         message: "Rating submitted successfully",
         rating: {
           stars,
-          averageRating: averageRating?.averageRating ?? null,
+          averageRating: summary?.averageRating ?? null,
+          ratingCount: summary?.ratingCount ?? 0,
         },
       });
     } catch (err) {
