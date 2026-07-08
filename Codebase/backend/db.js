@@ -6,7 +6,11 @@ import { promisify } from "util";
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 
-const dbPath = path.resolve(__dirname, "..", "..", "Database", "relational_database", "v.3.0", "recipe_social_media.db");
+// Defaults to the committed v3.0 database. SAVR_DB_PATH lets tests point the
+// server at a throwaway copy so they never touch the real database file.
+const dbPath =
+  process.env.SAVR_DB_PATH ||
+  path.resolve(__dirname, "..", "..", "Database", "relational_database", "v.3.0", "recipe_social_media.db");
 
 let db;
 

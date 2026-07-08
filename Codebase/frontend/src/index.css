@@ -847,3 +847,63 @@ body {
   color: #1f8a70;
   font-weight: 700;
 }
+
+/* Comment & rating controls */
+.comment-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.char-count {
+  color: #6b8a82;
+  margin-right: auto;
+}
+
+.comment-owner-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 0.4rem;
+}
+
+.comment-owner-actions button,
+.comment-edit button {
+  background: none;
+  border: none;
+  padding: 0;
+  color: #1f8a70;
+  font-weight: 700;
+  font-family: inherit;
+  font-size: 0.9rem;
+  cursor: pointer;
+}
+
+.comment-owner-actions button:hover,
+.comment-edit button:hover {
+  text-decoration: underline;
+}
+
+.comment-edit button.secondary {
+  color: #6b8a82;
+}
+
+.comment-owner-actions button:disabled,
+.comment-edit button:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.comment-edit textarea {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 0.6rem;
+  border: 1px solid #d6e5e0;
+  border-radius: 10px;
+  font-family: inherit;
+}
+
+.your-rating-note {
+  color: #1f8a70;
+  font-weight: 700;
+}

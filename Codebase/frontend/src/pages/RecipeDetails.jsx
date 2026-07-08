@@ -2,8 +2,16 @@ import { useEffect, useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
 
 import { useAuth } from "../auth/useAuth";
-import { createComment, submitRating } from "../lib/commentRatingService";
+import {
+  createComment,
+  updateComment,
+  deleteComment,
+  submitRating,
+} from "../lib/commentRatingService";
 import { buildMediaUrl, fetchRecipeDetail, saveRecipe, unsaveRecipe } from "../lib/recipes";
+
+// Keep in sync with MAX_COMMENT_LENGTH in the backend (index.js).
+const MAX_COMMENT_LENGTH = 1000;
 
 function formatDate(value) {
   if (!value) return "";
@@ -39,7 +47,7 @@ function initials(name) {
 function RecipeDetails() {
   const { recipeId } = useParams();
   const navigate = useNavigate();
-  const { token } = useAuth();
+  const { token, user } = useAuth();
   const [recipe, setRecipe] = useState(null);
   const [ingredients, setIngredients] = useState([]);
   const [steps, setSteps] = useState([]);
@@ -49,6 +57,8 @@ function RecipeDetails() {
   const [commentText, setCommentText] = useState("");
   const [rating, setRating] = useState("");
   const [submitting, setSubmitting] = useState(false);
+  const [editingId, setEditingId] = useState(null);
+  const [editingText, setEditingText] = useState("");
 
   useEffect(() => {
     let isMounted = true;
@@ -62,6 +72,10 @@ function RecipeDetails() {
           setIngredients(data.ingredients || []);
           setSteps(data.steps || []);
           setComments(data.comments || []);
+          // Preselect the rating this user previously gave, if any.
+          if (data.recipe?.userRating) {
+            setRating(String(data.recipe.userRating));
+          }
           setError("");
         }
       } catch (err) {
@@ -113,11 +127,72 @@ function RecipeDetails() {
       return;
     }
 
+    if (description.length > MAX_COMMENT_LENGTH) {
+      setError(`Comment cannot exceed ${MAX_COMMENT_LENGTH} characters.`);
+      return;
+    }
+
     try {
       setSubmitting(true);
       const result = await createComment(recipe.id, description, token);
       setComments((currentComments) => [result.comment, ...currentComments]);
       setCommentText("");
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  function startEdit(comment) {
+    setEditingId(comment.id);
+    setEditingText(comment.description);
+    setError("");
+  }
+
+  function cancelEdit() {
+    setEditingId(null);
+    setEditingText("");
+  }
+
+  async function handleCommentUpdate(commentId) {
+    const description = editingText.trim();
+    if (!description) {
+      setError("Comment cannot be empty.");
+      return;
+    }
+
+    if (description.length > MAX_COMMENT_LENGTH) {
+      setError(`Comment cannot exceed ${MAX_COMMENT_LENGTH} characters.`);
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      const result = await updateComment(recipe.id, commentId, description, token);
+      setComments((current) =>
+        current.map((c) => (c.id === commentId ? { ...c, ...result.comment } : c))
+      );
+      cancelEdit();
+      setError("");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
+    }
+  }
+
+  async function handleCommentDelete(commentId) {
+    if (!window.confirm("Delete this comment?")) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await deleteComment(recipe.id, commentId, token);
+      setComments((current) => current.filter((c) => c.id !== commentId));
+      if (editingId === commentId) cancelEdit();
       setError("");
     } catch (err) {
       setError(err.message);
@@ -143,8 +218,13 @@ function RecipeDetails() {
     try {
       setSubmitting(true);
       const result = await submitRating(recipe.id, nextRating, token);
-      setRecipe((currentRecipe) => ({ ...currentRecipe, averageRating: result.rating.averageRating }));
-      setRating("");
+      setRecipe((currentRecipe) => ({
+        ...currentRecipe,
+        averageRating: result.rating.averageRating,
+        ratingCount: result.rating.ratingCount,
+        userRating: result.rating.stars,
+      }));
+      setRating(String(nextRating));
       setError("");
     } catch (err) {
       setError(err.message);
@@ -210,7 +290,12 @@ function RecipeDetails() {
           <span>Prep: {recipe.prepTime} min</span>
           <span>Cook: {recipe.cookingTime} min</span>
           <span>{recipe.numServings} servings</span>
-          <span>Rating: {recipe.averageRating || "Not rated"}</span>
+          <span>
+            Rating:{" "}
+            {recipe.averageRating
+              ? `${recipe.averageRating} (${recipe.ratingCount} rating${recipe.ratingCount === 1 ? "" : "s"})`
+              : "Not rated"}
+          </span>
         </div>
       </article>
 
@@ -261,9 +346,14 @@ function RecipeDetails() {
               value={commentText}
               onChange={(event) => setCommentText(event.target.value)}
               rows={3}
+              maxLength={MAX_COMMENT_LENGTH}
               placeholder="Share your thoughts about this recipe"
+              aria-label="Write a comment"
             />
             <div className="comment-actions">
+              <small className="char-count">
+                {commentText.length}/{MAX_COMMENT_LENGTH}
+              </small>
               <button type="submit" disabled={submitting}>Post comment</button>
             </div>
           </div>
@@ -279,20 +369,82 @@ function RecipeDetails() {
             <option value="4">4 stars</option>
             <option value="5">5 stars</option>
           </select>
-          <button type="submit" disabled={submitting}>Submit rating</button>
+          <button type="submit" disabled={submitting}>
+            {recipe.userRating ? "Update rating" : "Submit rating"}
+          </button>
+          {recipe.userRating ? (
+            <span className="your-rating-note">You rated this {recipe.userRating}/5</span>
+          ) : null}
         </form>
 
         {comments.length === 0 && <p className="muted-text">No comments yet.</p>}
-        {comments.map((comment) => (
-          <article className="comment-row" key={comment.id}>
-            <span className="avatar">{initials(comment.creatorName)}</span>
-            <div>
-              <strong>{comment.creatorName}</strong>
-              <small>{formatDate(comment.datePosted)}</small>
-              <p>{comment.description}</p>
-            </div>
-          </article>
-        ))}
+        {comments.map((comment) => {
+          const isOwner = user && comment.creatorId === user.id;
+          const isEditing = editingId === comment.id;
+
+          return (
+            <article className="comment-row" key={comment.id}>
+              <span className="avatar">{initials(comment.creatorName)}</span>
+              <div style={{ flex: 1 }}>
+                <strong>{comment.creatorName}</strong>
+                <small>{formatDate(comment.datePosted)}</small>
+
+                {isEditing ? (
+                  <div className="comment-edit">
+                    <textarea
+                      value={editingText}
+                      onChange={(event) => setEditingText(event.target.value)}
+                      rows={3}
+                      maxLength={MAX_COMMENT_LENGTH}
+                      aria-label="Edit your comment"
+                    />
+                    <div className="comment-actions">
+                      <small className="char-count">
+                        {editingText.length}/{MAX_COMMENT_LENGTH}
+                      </small>
+                      <button
+                        type="button"
+                        onClick={() => handleCommentUpdate(comment.id)}
+                        disabled={submitting}
+                      >
+                        Save
+                      </button>
+                      <button
+                        type="button"
+                        className="secondary"
+                        onClick={cancelEdit}
+                        disabled={submitting}
+                      >
+                        Cancel
+                      </button>
+                    </div>
+                  </div>
+                ) : (
+                  <p>{comment.description}</p>
+                )}
+
+                {isOwner && !isEditing && (
+                  <div className="comment-owner-actions">
+                    <button
+                      type="button"
+                      onClick={() => startEdit(comment)}
+                      aria-label="Edit your comment"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      onClick={() => handleCommentDelete(comment.id)}
+                      aria-label="Delete your comment"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                )}
+              </div>
+            </article>
+          );
+        })}
       </section>
     </main>
   );
