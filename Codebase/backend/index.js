@@ -59,7 +59,57 @@ const storage = multer.diskStorage({
 const upload = multer({
   storage,
 });
+const profileImageUpload = multer({
+  storage: multer.memoryStorage(),
+  limits: {
+    fileSize: 2 * 1024 * 1024, // 2 MB
+  },
+  fileFilter: function (req, file, cb) {
+    const allowedTypes = ["image/jpeg", "image/png", "image/webp", "image/gif"];
 
+    if (!allowedTypes.includes(file.mimetype)) {
+      return cb(new Error("Profile image must be a JPG, PNG, WEBP, or GIF file"));
+    }
+
+    cb(null, true);
+  },
+});
+
+function getImageMimeType(buffer) {
+  if (!buffer || buffer.length < 12) {
+    return "application/octet-stream";
+  }
+
+  if (buffer[0] === 0xff && buffer[1] === 0xd8 && buffer[2] === 0xff) {
+    return "image/jpeg";
+  }
+
+  if (
+    buffer[0] === 0x89 &&
+    buffer[1] === 0x50 &&
+    buffer[2] === 0x4e &&
+    buffer[3] === 0x47
+  ) {
+    return "image/png";
+  }
+
+  if (
+    buffer[0] === 0x47 &&
+    buffer[1] === 0x49 &&
+    buffer[2] === 0x46
+  ) {
+    return "image/gif";
+  }
+
+  if (
+    buffer.toString("ascii", 0, 4) === "RIFF" &&
+    buffer.toString("ascii", 8, 12) === "WEBP"
+  ) {
+    return "image/webp";
+  }
+
+  return "application/octet-stream";
+}
 app.use(
   "/uploads",
   express.static("uploads")
@@ -173,6 +223,231 @@ async function start() {
   app.post("/logout", requireAuth, (req, res) => {
     return res.json({ ok: true });
   });
+async function getPublicProfileById(userId) {
+  const profile = await db.getAsync(
+    `
+    SELECT
+      idUsers,
+      username,
+      country,
+      gender,
+      birthday,
+      age,
+      CASE
+        WHEN profile_image IS NOT NULL THEN 1
+        ELSE 0
+      END AS hasProfileImage
+    FROM Users
+    WHERE idUsers = ?
+    `,
+    [userId]
+  );
+
+  if (!profile) {
+    return null;
+  }
+
+  return {
+    ...profile,
+    hasProfileImage: Boolean(profile.hasProfileImage),
+    profileImageUrl: profile.hasProfileImage
+      ? `/users/${profile.idUsers}/profile-image`
+      : null,
+  };
+}
+  // Get the currently authenticated user's profile
+app.get("/profile", requireAuth, async (req, res) => {
+  try {
+    const profile = await getPublicProfileById(req.user.id);
+
+    if (!profile) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json(profile);
+  } catch (err) {
+    console.error("Profile fetch error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+// Get another user's public profile
+app.get("/users/:id/profile", requireAuth, async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+
+    if (!userId) {
+      return res.status(400).json({ error: "Invalid user id" });
+    }
+
+    const profile = await getPublicProfileById(userId);
+
+    if (!profile) {
+      return res.status(404).json({ error: "User not found" });
+    }
+
+    return res.json(profile);
+  } catch (err) {
+    console.error("Public profile fetch error:", err);
+    return res.status(500).json({ error: "Server error" });
+  }
+});
+  // Update the authenticated user's profile
+app.put("/profile", requireAuth, async (req, res) => {
+  try {
+    const {
+      username,
+      country,
+      gender,
+      birthday,
+      age,
+    } = req.body;
+
+    if (!username || username.trim() === "") {
+      return res.status(400).json({
+        error: "Username is required",
+      });
+    }
+
+    if (
+      gender &&
+      !["male", "female", "other"].includes(gender)
+    ) {
+      return res.status(400).json({
+        error: "Invalid gender",
+      });
+    }
+
+    if (age !== null && age !== undefined) {
+      const parsedAge = Number(age);
+
+      if (!Number.isInteger(parsedAge) || parsedAge < 16) {
+        return res.status(400).json({
+          error: "Age must be at least 16",
+        });
+      }
+    }
+
+    const existing = await db.getAsync(
+      `
+      SELECT idUsers
+      FROM Users
+      WHERE username = ?
+      AND idUsers != ?
+      `,
+      [username.trim(), req.user.id]
+    );
+
+    if (existing) {
+      return res.status(409).json({
+        error: "Username already exists",
+      });
+    }
+
+    await db.runAsync(
+      `
+      UPDATE Users
+      SET
+        username = ?,
+        country = ?,
+        gender = ?,
+        birthday = ?,
+        age = ?
+      WHERE idUsers = ?
+      `,
+      [
+        username.trim(),
+        country || null,
+        gender || null,
+        birthday || null,
+        age || null,
+        req.user.id,
+      ]
+    );
+
+    const updated = await getPublicProfileById(req.user.id);
+
+      return res.json(updated);
+
+  } catch (err) {
+
+    console.error("Profile update error:", err);
+
+    return res.status(500).json({
+      error: "Server error",
+    });
+
+  }
+});
+// Upload or replace the authenticated user's profile image
+app.post("/profile/image", requireAuth, (req, res) => {
+  profileImageUpload.single("profileImage")(req, res, async (err) => {
+    if (err) {
+      return res.status(400).json({
+        error: err.message || "Invalid profile image",
+      });
+    }
+
+    try {
+      if (!req.file) {
+        return res.status(400).json({
+          error: "No profile image uploaded",
+        });
+      }
+
+      await db.runAsync(
+        `
+        UPDATE Users
+        SET profile_image = ?
+        WHERE idUsers = ?
+        `,
+        [req.file.buffer, req.user.id]
+      );
+
+      const updated = await getPublicProfileById(req.user.id);
+
+      return res.json(updated);
+    } catch (dbErr) {
+      console.error("Profile image upload error:", dbErr);
+      return res.status(500).json({
+        error: "Unable to upload profile image",
+      });
+    }
+  });
+});
+
+// Public route for viewing a user's profile image
+app.get("/users/:id/profile-image", async (req, res) => {
+  try {
+    const userId = Number(req.params.id);
+
+    if (!userId) {
+      return res.status(400).json({ error: "Invalid user id" });
+    }
+
+    const row = await db.getAsync(
+      `
+      SELECT profile_image
+      FROM Users
+      WHERE idUsers = ?
+      `,
+      [userId]
+    );
+
+    if (!row || !row.profile_image) {
+      return res.status(404).json({ error: "Profile image not found" });
+    }
+
+    const contentType = getImageMimeType(row.profile_image);
+
+    res.setHeader("Content-Type", contentType);
+    res.setHeader("Cache-Control", "public, max-age=3600");
+
+    return res.send(row.profile_image);
+  } catch (err) {
+    console.error("Profile image fetch error:", err);
+    return res.status(500).json({ error: "Unable to load profile image" });
+  }
+});
   // Follow Service - follow a user
   app.post("/follow/:idFollowed", requireAuth, async (req, res) => {
     try {
@@ -670,6 +945,10 @@ async function start() {
           Recipes.date_posted AS datePosted,
           Users.idUsers AS creatorId,
           Users.username AS creatorName,
+          CASE
+            WHEN Users.profile_image IS NOT NULL THEN '/users/' || Users.idUsers || '/profile-image'
+            ELSE NULL
+          END AS creatorProfileImageUrl,
           (
             SELECT Media.media_url
             FROM RecipeMedia
@@ -731,6 +1010,10 @@ async function start() {
             Recipes.date_posted AS datePosted,
             Users.idUsers AS creatorId,
             Users.username AS creatorName,
+            CASE
+              WHEN Users.profile_image IS NOT NULL THEN '/users/' || Users.idUsers || '/profile-image'
+              ELSE NULL
+            END AS creatorProfileImageUrl,
             (
               SELECT Media.media_url
               FROM RecipeMedia
@@ -866,6 +1149,10 @@ async function start() {
             Recipes.date_posted AS datePosted,
             Users.idUsers AS creatorId,
             Users.username AS creatorName,
+            CASE
+              WHEN Users.profile_image IS NOT NULL THEN '/users/' || Users.idUsers || '/profile-image'
+              ELSE NULL
+            END AS creatorProfileImageUrl,
             SavedRecipes.bookmarked_date AS bookmarkedDate,
             1 AS isSaved,
             (

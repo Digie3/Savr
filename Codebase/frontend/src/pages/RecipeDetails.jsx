@@ -8,6 +8,7 @@ import {
   deleteComment,
   submitRating,
 } from "../lib/commentRatingService";
+import { API_BASE } from "../api";
 import { buildMediaUrl, fetchRecipeDetail, saveRecipe, unsaveRecipe } from "../lib/recipes";
 
 // Keep in sync with MAX_COMMENT_LENGTH in the backend (index.js).
@@ -43,7 +44,19 @@ function formatDate(value) {
 function initials(name) {
   return (name || "U").trim().slice(0, 1).toUpperCase();
 }
+function buildProfileImageUrl(url) {
+  if (!url) return "";
 
+  if (
+    url.startsWith("http") ||
+    url.startsWith("data:") ||
+    url.startsWith("blob:")
+  ) {
+    return url;
+  }
+
+  return `${API_BASE}${url}`;
+}
 function RecipeDetails() {
   const { recipeId } = useParams();
   const navigate = useNavigate();
@@ -253,8 +266,16 @@ function RecipeDetails() {
       <article className="recipe-detail-card">
         <div className="creator-strip detail-creator">
           <Link className="avatar" to={`/profile/${recipe.creatorId}`}>
-            {initials(recipe.creatorName)}
-          </Link>
+  {recipe.creatorProfileImageUrl ? (
+    <img
+      className="avatar-img"
+      src={buildProfileImageUrl(recipe.creatorProfileImageUrl)}
+      alt={`${recipe.creatorName} profile`}
+    />
+  ) : (
+    initials(recipe.creatorName)
+  )}
+</Link>
           <span>
             <Link to={`/profile/${recipe.creatorId}`}><strong>{recipe.creatorName}</strong></Link>
             <small>{formatDate(recipe.datePosted)}</small>

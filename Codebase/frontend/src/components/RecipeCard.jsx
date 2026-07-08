@@ -3,6 +3,7 @@ import { Link, useNavigate } from "react-router-dom";
 import { useAuth } from "../auth/useAuth";
 import { buildMediaUrl } from "../lib/recipes";
 import FollowButton from "./FollowButton";
+import { API_BASE } from "../api";
 
 function formatDate(value) {
   if (!value) return "Recently";
@@ -19,7 +20,19 @@ function formatDate(value) {
 function initials(name) {
   return (name || "U").trim().slice(0, 1).toUpperCase();
 }
+function buildProfileImageUrl(url) {
+  if (!url) return "";
 
+  if (
+    url.startsWith("http") ||
+    url.startsWith("data:") ||
+    url.startsWith("blob:")
+  ) {
+    return url;
+  }
+
+  return `${API_BASE}${url}`;
+}
 function RecipeCard({ recipe, onSaveToggle, showFollow = false }) {
   const { token, user } = useAuth();
   
@@ -46,12 +59,23 @@ function RecipeCard({ recipe, onSaveToggle, showFollow = false }) {
       <div className="feed-card-main">
         <div className="feed-card-topline">
           <Link className="creator-strip" to={`/profile/${recipe.creatorId}`}>
-            <span className="avatar">{initials(recipe.creatorName)}</span>
-            <span>
-              <strong>{recipe.creatorName}</strong>
-              <small>{formatDate(recipe.datePosted)}</small>
-            </span>
-          </Link>
+  <span className="avatar">
+    {recipe.creatorProfileImageUrl ? (
+      <img
+        className="avatar-img"
+        src={buildProfileImageUrl(recipe.creatorProfileImageUrl)}
+        alt={`${recipe.creatorName} profile`}
+      />
+    ) : (
+      initials(recipe.creatorName)
+    )}
+  </span>
+
+  <span>
+    <strong>{recipe.creatorName}</strong>
+    <small>{formatDate(recipe.datePosted)}</small>
+  </span>
+</Link>
 
           <div className="recipe-card-actions">
             {showFollow && token && recipe.creatorId && !isOwnRecipe && (
