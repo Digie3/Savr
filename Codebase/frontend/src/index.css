@@ -791,3 +791,59 @@ body {
     padding: 1rem;
   }
 }
+.follow-btn {
+  padding: 0.45rem 1rem;
+  border: 1px solid #1f8a70;
+  border-radius: 999px;
+  background: white;
+  color: #1f8a70;
+  font-weight: 600;
+  cursor: pointer;
+  transition: 0.2s;
+}
+
+.follow-btn:hover {
+  background: #1f8a70;
+  color: white;
+}
+.recipe-card-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.follow-btn {
+  padding: 0.45rem 1rem;
+  border: 1px solid #1f8a70;
+  border-radius: 999px;
+  background: white;
+  color: #1f8a70;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.follow-btn:hover {
+  background: #1f8a70;
+  color: white;
+}
+
+.follow-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.profile-card {
+  background: white;
+  max-width: 600px;
+  padding: 2rem;
+  border-radius: 18px;
+  box-shadow: 0 15px 35px rgba(31, 138, 112, 0.12);
+}
+
+.profile-stats {
+  display: flex;
+  gap: 1rem;
+  margin: 1rem 0;
+  color: #1f8a70;
+  font-weight: 700;
+}

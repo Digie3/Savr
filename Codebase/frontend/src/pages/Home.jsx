@@ -91,6 +91,7 @@ function Home() {
             key={recipe.id}
             recipe={recipe}
             onSaveToggle={handleSaveToggle}
+            showFollow={true}
           />
         ))}
       </section>

@@ -298,7 +298,62 @@ async function start() {
       return res.status(500).json({ error: "Server error" });
     }
   });
+  // Follow Service - check if current user follows another user
+  app.get("/follow/status/:idFollowed", requireAuth, async (req, res) => {
+    try {
+      const idFollower = req.user.id;
+      const idFollowed = Number(req.params.idFollowed);
 
+      if (!idFollowed) {
+        return res.status(400).json({ error: "Invalid user id" });
+      }
+
+      const follow = await db.getAsync(
+        `SELECT idFollower, idFollowed
+         FROM Followers
+         WHERE idFollower = ? AND idFollowed = ?`,
+        [idFollower, idFollowed]
+      );
+
+      return res.json({ isFollowing: Boolean(follow) });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
+
+  // Follow Service - get follower/following counts
+  app.get("/follow/counts/:userId", requireAuth, async (req, res) => {
+    try {
+      const userId = Number(req.params.userId);
+
+      if (!userId) {
+        return res.status(400).json({ error: "Invalid user id" });
+      }
+
+      const followersResult = await db.getAsync(
+        `SELECT COUNT(*) AS count
+         FROM Followers
+         WHERE idFollowed = ?`,
+        [userId]
+      );
+
+      const followingResult = await db.getAsync(
+        `SELECT COUNT(*) AS count
+         FROM Followers
+         WHERE idFollower = ?`,
+        [userId]
+      );
+
+      return res.json({
+        followersCount: followersResult.count,
+        followingCount: followingResult.count,
+      });
+    } catch (err) {
+      console.error(err);
+      return res.status(500).json({ error: "Server error" });
+    }
+  });
   // Recipe Service - POST recipe
   app.post("/create", requireAuth, upload.any(), async (req, res) => {
     try {
