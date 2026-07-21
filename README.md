@@ -40,6 +40,12 @@ Savr is being developed as a full-stack web application following a **service-ba
 
 * SQLite
 
+**Data Lakehouse**
+* Python
+* Apache Spark 4.1.0
+* PySpark 4.1.0
+* Delta Lake 4.2.0
+
 ### Core Features
 
 Users will be able to:
@@ -190,6 +196,15 @@ Savr uses SQLite for persistent storage.
 The SQLite database file will be created automatically when the backend is launched for the first time.
 
 No separate database installation is required.
+
+---
+
+### Data Lakehouse
+
+Savr uses Apache Spark to process and transform the data, while Delta Lake provides the ACID transactions.
+
+Delete lakehouse data: (1) cd …/lakehouse/data, (2) rm -rf bronze silver gold
+Manually update lakehouse: (1) cd …/lakehouse/etl, (2) python3 run_pipeline.py
 
 ---
 
