@@ -10,6 +10,7 @@ const links = [
   { label: "Create Recipe", path: "/create" },
   { label: "Saved Recipes", path: "/saved" },
   { label: "Analytics", path: "/analytics" },
+  { label: "Creator Dashboard", path: "/creator" },
   { label: "Profile", path: "/profile" },
 ];
 

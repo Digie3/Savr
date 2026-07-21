@@ -12,6 +12,7 @@ import SavedRecipes from "./pages/SavedRecipes";
 import CreateRecipe from "./pages/CreateRecipe";
 import RecipeDetails from "./pages/RecipeDetails";
 import Analytics from "./pages/Analytics";
+import Creator from "./pages/Creator";
 
 function App() {
   return (
@@ -31,6 +32,9 @@ function App() {
         <Route path="/recipes/:recipeId" element={<RecipeDetails />} />
         <Route path="/recipe" element={<Home />} />
         <Route path="/analytics" element={<Analytics />} />
+        <Route path="/creator" element={<ProtectedRoute> <Creator /> </ProtectedRoute>
+    }
+/>
       </Routes>
     </BrowserRouter>
   );

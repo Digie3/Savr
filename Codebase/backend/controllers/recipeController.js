@@ -9,7 +9,7 @@ import {
 } from "../services/recipeService.js";
 import { getOptionalUserId } from "../helpers/authHelper.js";
 import { cleanupUploadedFiles } from "../helpers/imageHelper.js";
-import { logActivity } from "../lakehouse.js";
+import { logActivity } from "../lakehouse/lakehouse.js";
 
 export async function createRecipe(req, res) {
   try {
@@ -142,7 +142,6 @@ export async function createRecipe(req, res) {
 
 export async function getRecipes(req, res) {
   try {
-
     const db = getDB();
     const viewerId = await getOptionalUserId(req);
     const recipes = await getAllRecipes(db, viewerId);
@@ -182,12 +181,31 @@ export async function getRecipe(req, res) {
     const steps = await getRecipeSteps(db, recipeId);
     const comments = await getRecipeComments(db, recipeId);
 
-    await logActivity(db, {
-      eventType: "recipe_view",
-      entityType: "recipe",
-      entityId: recipeId,
-      metadata: { route: "/recipes/:id" },
-    });
+    // Has this user viewed this recipe in the last 2 seconds
+    const recentView = await db.getAsync(
+      `SELECT 1
+      FROM ActivityEvents
+      WHERE Users_idUsers IS ?
+        AND event_type = 'recipe_view'
+        AND entity_type = 'recipe'
+        AND entity_id = ?
+        AND created_at >= datetime('now', '-2 seconds')
+      LIMIT 1`,
+      [
+        req.user?.id ?? null,
+        String(recipeId)
+      ]
+    );
+
+    //If viewed in the last 2 secs, then do not enter log
+    if (!recentView) {
+      await logActivity(db, {
+        eventType: "recipe_view",
+        entityType: "recipe",
+        entityId: recipeId,
+        metadata: { route: "/recipes/:id" },
+      });
+    }
 
     return res.json({ recipe, ingredients, steps, comments });
 

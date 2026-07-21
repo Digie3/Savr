@@ -1,6 +1,6 @@
 import { getDB } from "../db.js";
 import { signToken } from "../auth.js";
-import { logActivity } from "../lakehouse.js";
+import { logActivity } from "../lakehouse/lakehouse.js";
 
 import {
     registerUser,

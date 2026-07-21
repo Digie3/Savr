@@ -4,7 +4,9 @@ import bodyParser from "body-parser";
 import cors from "cors";
 
 import { initDB, getDB } from "./db.js";
-import { initLakehouse } from "./lakehouse.js";
+import { initLakehouse } from "./lakehouse/lakehouse.js";
+import { initDuckDB } from "./lakehouse/duckdb.js";
+import { startLakehouseScheduler } from "./lakehouse/scheduler.js";
 
 // Routes
 import authRoutes from "./routes/authRoutes.js";
@@ -15,6 +17,7 @@ import savedRecipeRoutes from "./routes/savedRecipeRoutes.js";
 import commentRoutes from "./routes/commentsRoutes.js";
 import ratingRoutes from "./routes/ratingRoutes.js";
 import analyticsRoutes from "./routes/analyticRoutes.js";
+import creatorRoutes from "./routes/creatorRoutes.js";
 
 const app = express();
 
@@ -32,11 +35,15 @@ app.use("/", savedRecipeRoutes);
 app.use("/", commentRoutes);
 app.use("/", ratingRoutes);
 app.use("/", analyticsRoutes);
+app.use("/", creatorRoutes);
 
 async function start() {
     await initDB();
     const db = getDB();
     await initLakehouse(db);
+    await initDuckDB();
+    //DO NOT REMOVE BELOW (it runs every min, good for testing but too many files)
+    //startLakehouseScheduler();
 
     const port = process.env.PORT || 4000;
 

@@ -1,5 +1,5 @@
 import { getUserById, followUser, unfollowUser, getFollowing, getFollowers, isFollowing, getFollowCounts } from "../services/followService.js";
-import { logActivity } from "../lakehouse.js";
+import { logActivity } from "../lakehouse/lakehouse.js";
 import { getDB } from "../db.js";
 
 export async function follow(req, res) {

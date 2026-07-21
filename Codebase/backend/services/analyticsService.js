@@ -3,7 +3,7 @@ import {
     getAnalyticsSummary,
     getRecentEvents,
     getTrendingEntities,
-} from "../lakehouse.js";
+} from "../lakehouse/lakehouse.js";
 
 export async function logActivityService(db, activity) {
     return await logActivity(db, activity);

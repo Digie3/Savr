@@ -1,5 +1,5 @@
 import { getDB } from "../db.js";
-import { logActivity } from "../lakehouse.js";
+import { logActivity } from "../lakehouse/lakehouse.js";
 import {
     getSavedRecipesService,
     saveRecipeService,
