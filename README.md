@@ -205,6 +205,7 @@ No separate database installation is required.
 Savr uses Apache Spark to process and transform the data, while Delta Lake provides the ACID transactions.
 
 Delete lakehouse data: (1) cd …/lakehouse/data, (2) rm -rf bronze silver gold
+
 Manually update lakehouse: (1) cd …/lakehouse/etl, (2) python3 run_pipeline.py
 
 ---
