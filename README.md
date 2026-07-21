@@ -34,7 +34,8 @@ Savr is being developed as a full-stack web application following a **service-ba
 **Backend**
 
 * Java 21
-* Spring Boot
+* Node.js
+* Express
 
 **Database**
 
