@@ -9,7 +9,13 @@ import {
   submitRating,
 } from "../lib/commentRatingService";
 import { API_BASE } from "../api";
-import { buildMediaUrl, fetchRecipeDetail, saveRecipe, unsaveRecipe } from "../lib/recipes";
+import {
+  buildMediaUrl,
+  deleteRecipe as deleteRecipeRequest,
+  fetchRecipeDetail,
+  saveRecipe,
+  unsaveRecipe,
+} from "../lib/recipes";
 
 // Keep in sync with MAX_COMMENT_LENGTH in the backend (index.js).
 const MAX_COMMENT_LENGTH = 1000;
@@ -123,6 +129,27 @@ function RecipeDetails() {
       setError("");
     } catch (err) {
       setError(err.message);
+    }
+  }
+
+  async function handleRecipeDelete() {
+    if (!token) {
+      navigate("/login");
+      return;
+    }
+
+    if (!window.confirm("Delete this recipe? This cannot be undone.")) {
+      return;
+    }
+
+    try {
+      setSubmitting(true);
+      await deleteRecipeRequest(recipe.id, token);
+      navigate("/");
+    } catch (err) {
+      setError(err.message);
+    } finally {
+      setSubmitting(false);
     }
   }
 
@@ -259,6 +286,8 @@ function RecipeDetails() {
     );
   }
 
+  const isRecipeOwner = user && recipe.creatorId === user.id;
+
   return (
     <main className="recipe-detail-page">
       <Link className="back-link" to="/">Back to home feed</Link>
@@ -284,13 +313,26 @@ function RecipeDetails() {
 
         <div className="recipe-detail-title-row">
           <h1>{recipe.title}</h1>
-          <button
-            className={`save-recipe-btn${recipe.isSaved ? " is-saved" : ""}`}
-            type="button"
-            onClick={handleSaveToggle}
-          >
-            {recipe.isSaved ? "Saved" : "Save"}
-          </button>
+          <div className="recipe-detail-actions">
+            <button
+              className={`save-recipe-btn${recipe.isSaved ? " is-saved" : ""}`}
+              type="button"
+              onClick={handleSaveToggle}
+              disabled={submitting}
+            >
+              {recipe.isSaved ? "Saved" : "Save"}
+            </button>
+            {isRecipeOwner && (
+              <button
+                className="delete-recipe-btn"
+                type="button"
+                onClick={handleRecipeDelete}
+                disabled={submitting}
+              >
+                Delete
+              </button>
+            )}
+          </div>
         </div>
 
         {recipe.description && (

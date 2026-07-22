@@ -6,6 +6,7 @@ const VALID_EVENT_TYPES = new Set([
   "page_view",
   "recipe_view",
   "recipe_create",
+  "recipe_delete",
   "recipe_save",
   "recipe_unsave",
   "comment_create",

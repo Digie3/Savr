@@ -1,4 +1,5 @@
 import fs from "fs";
+import path from "path";
 
 export function getImageMimeType(buffer) {
     if (!buffer || buffer.length < 12) {
@@ -45,6 +46,30 @@ export function cleanupUploadedFiles(files = []) {
         } catch (err) {
             if (err.code !== "ENOENT") {
                 console.error("Failed to clean up uploaded file:", file.path, err);
+            }
+        }
+    }
+}
+
+export function cleanupUploadedPaths(mediaUrls = []) {
+    const uploadsRoot = path.resolve(process.cwd(), "uploads");
+
+    for (const mediaUrl of mediaUrls) {
+        if (!mediaUrl || typeof mediaUrl !== "string") continue;
+
+        const relativePath = mediaUrl.replace(/^\/+/, "");
+        const absolutePath = path.resolve(process.cwd(), relativePath);
+
+        if (absolutePath !== uploadsRoot && !absolutePath.startsWith(`${uploadsRoot}${path.sep}`)) {
+            console.error("Skipped cleanup outside uploads directory:", mediaUrl);
+            continue;
+        }
+
+        try {
+            fs.unlinkSync(absolutePath);
+        } catch (err) {
+            if (err.code !== "ENOENT") {
+                console.error("Failed to clean up uploaded file:", absolutePath, err);
             }
         }
     }

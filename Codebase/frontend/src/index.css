@@ -607,6 +607,28 @@ body {
   color: white;
 }
 
+.recipe-detail-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.delete-recipe-btn {
+  border: 1px solid #efb3a8;
+  border-radius: 999px;
+  background: #fff4f1;
+  color: #9f2f1f;
+  font-weight: 800;
+  padding: 0.45rem 0.85rem;
+  cursor: pointer;
+  min-width: 78px;
+}
+
+.delete-recipe-btn:hover {
+  background: #ffe6df;
+}
+
 .recipe-post-link {
   display: block;
   color: inherit;
@@ -790,6 +812,10 @@ body {
 
   .save-recipe-btn {
     margin-top: 0.75rem;
+  }
+
+  .recipe-detail-actions {
+    justify-content: flex-start;
   }
 
   .feed-card-vote {
