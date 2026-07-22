@@ -9,37 +9,27 @@ function CreatorDashboard() {
     const [loading, setLoading] = useState(true);
 
     useEffect(() => {
-
         async function loadDashboard() {
-
             try {
-
-                const data = await fetchCreatorDashboard(
-                    user.username
-                );
+                const data = await fetchCreatorDashboard(user.username);
 
                 setStats(data);
 
             } catch (err) {
-
                 console.error(err);
 
             } finally {
-
                 setLoading(false);
-
             }
-
         }
 
         loadDashboard();
-
     }, []);
 
     if (loading) {
         return <h2>Loading dashboard...</h2>;
     }
-    
+
     if (!stats) {
         return <h2>No dashboard data found.</h2>;
     }
@@ -80,6 +70,19 @@ function CreatorDashboard() {
 
             </div>
 
+            <div className="dashboard-card">
+                <h3>Highest Rated Recipe</h3>
+
+                <p>
+                    <strong>{stats.highest_rated_recipe ?? "None"}</strong>
+                </p>
+
+                {stats.average_rating != null && (
+                    <small>
+                        {stats.average_rating.toFixed(1)} ★ ({stats.rating_count} ratings)
+                    </small>
+                )}
+            </div>
         </div>
     );
 }

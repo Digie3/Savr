@@ -11,55 +11,18 @@ from pyspark.sql.functions import (
 )
 from spark_session import spark
 
-# --------------------------------------------------
 # Paths
-# --------------------------------------------------
-
 BASE = os.path.dirname(__file__)
-
-PROJECT_ROOT = os.path.abspath(
-    os.path.join(BASE, "..", "..", "..", "..")
-)
-
-SILVER = os.path.join(
-    PROJECT_ROOT,
-    "Codebase",
-    "backend",
-    "lakehouse",
-    "data",
-    "silver"
-)
-
-GOLD = os.path.join(
-    PROJECT_ROOT,
-    "Codebase",
-    "backend",
-    "lakehouse",
-    "data",
-    "gold"
-)
+SILVER = os.path.join(BASE, "..", "..", "..", "..", "Codebase", "backend", "lakehouse", "data", "silver")
+GOLD = os.path.join(BASE, "..", "..", "..", "..", "Codebase", "backend", "lakehouse", "data", "gold")
 
 os.makedirs(GOLD, exist_ok=True)
 
-# --------------------------------------------------
 # Load Silver Tables
-# --------------------------------------------------
-
-recipes = spark.read.format("delta").load(
-    os.path.join(SILVER, "recipe_details")
-)
-
-ratings = spark.read.format("delta").load(
-    os.path.join(SILVER, "ratings_clean")
-)
-
-comments = spark.read.format("delta").load(
-    os.path.join(SILVER, "comments_clean")
-)
-
-activity = spark.read.format("delta").load(
-    os.path.join(SILVER, "activity_clean")
-)
+recipes = spark.read.format("delta").load(os.path.join(SILVER, "recipe_details"))
+ratings = spark.read.format("delta").load(os.path.join(SILVER, "ratings_clean"))
+comments = spark.read.format("delta").load(os.path.join(SILVER, "comments_clean"))
+activity = spark.read.format("delta").load(os.path.join(SILVER, "activity_clean"))
 
 # --------------------------------------------------
 # Creator Metrics
@@ -192,6 +155,7 @@ creator_top_recipe = (
     .fillna({"view_count": 0})
 )
 
+# Group the rows by creator, then for each creator, order recipes (highest to lowest) view_count
 window = Window.partitionBy("creator").orderBy(col("view_count").desc())
 
 creator_top_recipe = (
@@ -211,6 +175,34 @@ creator_top_recipe.write \
     .save(os.path.join(GOLD, "creator_top_recipe"))
 
 print("Creator top recipe created.")
+
+## Highest rated recipe (current user)
+recipe_ratings = (recipe_metrics.filter(col("rating_count") > 0))
+
+# Group by creator, get the ratings of each creator (desc)
+window = Window.partitionBy("creator").orderBy(
+    col("average_rating").desc(),
+    col("rating_count").desc()
+)
+
+creator_highest_rated = (
+    recipe_ratings
+    .withColumn("rank", row_number().over(window))
+    .filter(col("rank") == 1)
+    .select(
+        col("creator"),
+        col("title").alias("highest_rated_recipe"),
+        col("average_rating"),
+        col("rating_count")
+    )
+)
+
+creator_highest_rated.write \
+    .format("delta") \
+    .mode("overwrite") \
+    .save(os.path.join(GOLD, "creator_highest_rated"))
+
+print("Creator highest rated recipe created.")
 
 # --------------------------------------------------
 # Rating Summary
