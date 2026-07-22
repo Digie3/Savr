@@ -18,6 +18,7 @@ import commentRoutes from "./routes/commentsRoutes.js";
 import ratingRoutes from "./routes/ratingRoutes.js";
 import analyticsRoutes from "./routes/analyticRoutes.js";
 import creatorRoutes from "./routes/creatorRoutes.js";
+import imageRoutes from "./routes/imageRoutes.js";
 
 const app = express();
 
@@ -36,6 +37,7 @@ app.use("/", commentRoutes);
 app.use("/", ratingRoutes);
 app.use("/", analyticsRoutes);
 app.use("/", creatorRoutes);
+app.use("/", imageRoutes);
 
 async function start() {
     await initDB();
