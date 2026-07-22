@@ -11,8 +11,8 @@ export function buildMediaUrl(path) {
   return `${API_BASE}${path}`;
 }
 
-export async function fetchRecipes(token) {
-  const response = await fetch(`${API_BASE}/recipes`, {
+export async function fetchRecipes(token, sortBy = "date", order = "desc") {
+  const response = await fetch(`${API_BASE}/recipes?sort=${sortBy}&order=${order}`, {
     headers: authHeaders(token),
   });
 

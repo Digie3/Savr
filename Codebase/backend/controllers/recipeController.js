@@ -145,7 +145,9 @@ export async function getRecipes(req, res) {
   try {
     const db = getDB();
     const viewerId = await getOptionalUserId(req);
-    const recipes = await getAllRecipes(db, viewerId);
+    const sort = req.query.sort ?? "date";
+    const order = req.query.order ?? "desc";
+    const recipes = await getAllRecipes(db, viewerId, sort, order);
 
     return res.json({
       recipes,
