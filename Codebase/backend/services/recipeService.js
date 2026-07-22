@@ -1,4 +1,4 @@
-import { cleanupUploadedFiles } from "../helpers/imageHelper.js";
+import { cleanupUploadedFiles, isValidExternalImageUrl } from "../helpers/imageHelper.js";
 
 // Recipe Service - POST recipe
 export async function createRecipeService(db, req) {
@@ -111,15 +111,25 @@ export async function createRecipeService(db, req) {
                 ]
             );
 
+            // Ingredient image: an uploaded file takes precedence; otherwise an
+            // external image URL selected from the image search (Image Service).
             const ingredientImage = req.files.find(file => file.fieldname === `ingredients[${i}][image]`);
 
+            let ingredientMediaUrl = null;
             if (ingredientImage) {
+                ingredientMediaUrl = `/uploads/user_${req.user.id}/ingredients/${ingredientImage.filename}`;
+            }
+            else if (isValidExternalImageUrl(currIngredient.imageUrl)) {
+                ingredientMediaUrl = currIngredient.imageUrl;
+            }
+
+            if (ingredientMediaUrl) {
                 const media = await db.runAsync(
                     `INSERT INTO Media
             (media_url, media_type, upload_date)
             VALUES(?, 'ingredient', datetime('now'))`,
                     [
-                        `/uploads/user_${req.user.id}/ingredients/${ingredientImage.filename}`
+                        ingredientMediaUrl
                     ]
                 );
 
