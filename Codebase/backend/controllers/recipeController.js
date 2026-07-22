@@ -1,6 +1,7 @@
 import { getDB } from "../db.js";
 import {
   createRecipeService,
+  deleteRecipeService,
   getAllRecipes,
   getRecipeById,
   getRecipeIngredients,
@@ -8,7 +9,7 @@ import {
   getRecipeComments
 } from "../services/recipeService.js";
 import { getOptionalUserId } from "../helpers/authHelper.js";
-import { cleanupUploadedFiles } from "../helpers/imageHelper.js";
+import { cleanupUploadedFiles, cleanupUploadedPaths } from "../helpers/imageHelper.js";
 import { logActivity } from "../lakehouse/lakehouse.js";
 
 export async function createRecipe(req, res) {
@@ -213,5 +214,40 @@ export async function getRecipe(req, res) {
 
     console.error("Recipe detail error:", err);
     return res.status(500).json({ error: "Unable to load recipe" });
+  }
+}
+
+export async function deleteRecipe(req, res) {
+  try {
+    const db = getDB();
+    const recipeId = Number(req.params.id);
+
+    if (!recipeId) {
+      return res.status(400).json({ error: "Invalid recipe id" });
+    }
+
+    const result = await deleteRecipeService(db, recipeId, req.user.id);
+    cleanupUploadedPaths(result.deletedMediaUrls);
+
+    await logActivity(db, {
+      userId: req.user.id,
+      username: req.user.username,
+      eventType: "recipe_delete",
+      entityType: "recipe",
+      entityId: recipeId,
+      metadata: { route: "/recipes/:id" },
+    });
+
+    return res.json({
+      message: "Recipe deleted successfully",
+      recipeId,
+    });
+  } catch (err) {
+    if (err.status) {
+      return res.status(err.status).json(err.body);
+    }
+
+    console.error("Recipe delete error:", err);
+    return res.status(500).json({ error: "Unable to delete recipe" });
   }
 }

@@ -72,3 +72,17 @@ export async function unsaveRecipe(recipeId, token) {
 
   return response.json();
 }
+
+export async function deleteRecipe(recipeId, token) {
+  const response = await fetch(`${API_BASE}/recipes/${recipeId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || "Unable to delete recipe");
+  }
+
+  return data;
+}

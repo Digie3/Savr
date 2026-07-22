@@ -394,3 +394,85 @@ export async function getRecipeComments(db, recipeId) {
     return comments;
 }
 
+export async function deleteRecipeService(db, recipeId, userId) {
+    const recipe = await db.getAsync(
+        `
+          SELECT idRecipes, Users_idUsers
+          FROM Recipes
+          WHERE idRecipes = ?
+        `,
+        [recipeId]
+    );
+
+    if (!recipe) {
+        const err = new Error("Recipe not found");
+        err.status = 404;
+        err.body = { error: "Recipe not found" };
+        throw err;
+    }
+
+    if (recipe.Users_idUsers !== userId) {
+        const err = new Error("You can only delete your own recipes");
+        err.status = 403;
+        err.body = { error: "You can only delete your own recipes" };
+        throw err;
+    }
+
+    const mediaRows = await db.allAsync(
+        `
+          SELECT DISTINCT Media.idMedia AS id, Media.media_url AS mediaUrl
+          FROM Media
+          JOIN RecipeMedia ON RecipeMedia.Media_idMedia = Media.idMedia
+          WHERE RecipeMedia.Recipes_idRecipes = ?
+
+          UNION
+
+          SELECT DISTINCT Media.idMedia AS id, Media.media_url AS mediaUrl
+          FROM Media
+          JOIN RecipeStepMedia ON RecipeStepMedia.Media_idMedia = Media.idMedia
+          JOIN RecipeSteps ON RecipeStepMedia.RecipeSteps_idRecipeSteps = RecipeSteps.idRecipeSteps
+          WHERE RecipeSteps.Recipes_idRecipes = ?
+        `,
+        [recipeId, recipeId]
+    );
+
+    const mediaIds = mediaRows.map((row) => row.id);
+
+    await db.runAsync("BEGIN TRANSACTION");
+
+    try {
+        await db.runAsync(`DELETE FROM SavedRecipes WHERE Recipes_idRecipes = ?`, [recipeId]);
+        await db.runAsync(`DELETE FROM Comments WHERE Recipes_idRecipes = ?`, [recipeId]);
+        await db.runAsync(`DELETE FROM Ratings WHERE Recipes_idRecipes = ?`, [recipeId]);
+        await db.runAsync(`DELETE FROM Recipes_has_Ingredients WHERE Recipes_idRecipes = ?`, [recipeId]);
+        await db.runAsync(`DELETE FROM RecipeMedia WHERE Recipes_idRecipes = ?`, [recipeId]);
+        await db.runAsync(
+            `
+              DELETE FROM RecipeStepMedia
+              WHERE RecipeSteps_idRecipeSteps IN (
+                SELECT idRecipeSteps
+                FROM RecipeSteps
+                WHERE Recipes_idRecipes = ?
+              )
+            `,
+            [recipeId]
+        );
+        await db.runAsync(`DELETE FROM RecipeSteps WHERE Recipes_idRecipes = ?`, [recipeId]);
+        await db.runAsync(`DELETE FROM Recipes WHERE idRecipes = ?`, [recipeId]);
+
+        if (mediaIds.length > 0) {
+            const placeholders = mediaIds.map(() => "?").join(",");
+            await db.runAsync(`DELETE FROM Media WHERE idMedia IN (${placeholders})`, mediaIds);
+        }
+
+        await db.runAsync("COMMIT");
+
+        return {
+            recipeId,
+            deletedMediaUrls: mediaRows.map((row) => row.mediaUrl).filter(Boolean),
+        };
+    } catch (err) {
+        await db.runAsync("ROLLBACK");
+        throw err;
+    }
+}
