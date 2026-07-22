@@ -18,6 +18,7 @@ import commentRoutes from "./routes/commentsRoutes.js";
 import ratingRoutes from "./routes/ratingRoutes.js";
 import analyticsRoutes from "./routes/analyticRoutes.js";
 import creatorRoutes from "./routes/creatorRoutes.js";
+import imageRoutes from "./routes/imageRoutes.js";
 
 const app = express();
 
@@ -25,6 +26,9 @@ app.use(cors());
 app.use(bodyParser.json());
 
 app.use("/uploads", express.static("uploads"));
+
+// Lightweight readiness probe (used by the automated test suite).
+app.get("/health", (req, res) => res.json({ status: "ok" }));
 
 // Routes
 app.use("/", authRoutes);
@@ -36,6 +40,7 @@ app.use("/", commentRoutes);
 app.use("/", ratingRoutes);
 app.use("/", analyticsRoutes);
 app.use("/", creatorRoutes);
+app.use("/", imageRoutes);
 
 async function start() {
     await initDB();

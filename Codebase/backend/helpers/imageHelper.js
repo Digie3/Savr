@@ -36,6 +36,21 @@ export function getImageMimeType(buffer) {
     return "application/octet-stream";
 }
 
+// Validate an external image URL before we store it as a Media row.
+// Only http/https URLs are accepted (blocks javascript:, data:, file:, etc.).
+export function isValidExternalImageUrl(url) {
+    if (typeof url !== "string" || url.length > 2000) {
+        return false;
+    }
+
+    try {
+        const parsed = new URL(url);
+        return parsed.protocol === "http:" || parsed.protocol === "https:";
+    } catch {
+        return false;
+    }
+}
+
 export function cleanupUploadedFiles(files = []) {
     for (const file of files) {
         if (!file.path) continue;

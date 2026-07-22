@@ -1,6 +1,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { createRecipe } from "../lib/createRecipe";
+import IngredientImageSearch from "./IngredientImageSearch";
 
 function CreateRecipeButton() {
     const navigate = useNavigate();
@@ -17,7 +18,8 @@ function CreateRecipeButton() {
             quantity: "",
             unit: "",
             other_desc: "",
-            image: null
+            image: null,
+            imageUrl: ""
         }
     ]);
 
@@ -50,8 +52,13 @@ function CreateRecipeButton() {
                 formData.append(`ingredients[${index}][unit]`, ingredient.unit);
                 formData.append(`ingredients[${index}][other_desc]`, ingredient.other_desc);
 
+                // An uploaded file takes precedence; otherwise send the selected
+                // web image URL (from the Image Service search).
                 if (ingredient.image) {
                     formData.append(`ingredients[${index}][image]`, ingredient.image);
+                }
+                else if (ingredient.imageUrl) {
+                    formData.append(`ingredients[${index}][imageUrl]`, ingredient.imageUrl);
                 }
             }
             );
@@ -100,7 +107,8 @@ function CreateRecipeButton() {
                 quantity: "",
                 unit: "",
                 other_desc: "",
-                image: null
+                image: null,
+                imageUrl: ""
             }
         ]);
     }
@@ -109,6 +117,24 @@ function CreateRecipeButton() {
         const copy = [...ingredients];
         copy[index][field] = value;
         setIngredients(copy);
+    }
+
+    // Uploading a file and picking a web image are mutually exclusive, so
+    // setting one clears the other. Functional updates avoid stale state.
+    function setIngredientImageFile(index, file) {
+        setIngredients((prev) =>
+            prev.map((ing, i) =>
+                i === index ? { ...ing, image: file || null, imageUrl: file ? "" : ing.imageUrl } : ing
+            )
+        );
+    }
+
+    function setIngredientImageUrl(index, url) {
+        setIngredients((prev) =>
+            prev.map((ing, i) =>
+                i === index ? { ...ing, imageUrl: url, image: url ? null : ing.image } : ing
+            )
+        );
     }
 
     function addStep() {
@@ -216,7 +242,17 @@ function CreateRecipeButton() {
                         <input
                             type="file"
                             accept="image/*"
-                            onChange={(e) => updateIngredient(index, "image", e.target.files[0])}
+                            disabled={Boolean(ingredient.imageUrl)}
+                            onChange={(e) => setIngredientImageFile(index, e.target.files[0])}
+                        />
+
+                        <p className="image-option-divider">or search the web:</p>
+
+                        <IngredientImageSearch
+                            ingredientName={ingredient.name}
+                            selectedImageUrl={ingredient.imageUrl}
+                            onSelect={(url) => setIngredientImageUrl(index, url)}
+                            disabled={Boolean(ingredient.image)}
                         />
 
                         {ingredients.length > 1 && (

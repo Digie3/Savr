@@ -145,7 +145,9 @@ Handles:
 Handles:
 
 * Retrieval of recipe and ingredient-related images
-* Integration with external image APIs
+* Ingredient image search via the Google Custom Search API
+
+See [Documentation/image-service.md](Documentation/image-service.md) for setup, environment variables, endpoint reference, and troubleshooting.
 
 ### Data Layer
 
