@@ -27,6 +27,9 @@ app.use(bodyParser.json());
 
 app.use("/uploads", express.static("uploads"));
 
+// Lightweight readiness probe (used by the automated test suite).
+app.get("/health", (req, res) => res.json({ status: "ok" }));
+
 // Routes
 app.use("/", authRoutes);
 app.use("/", userRoutes);
