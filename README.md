@@ -170,7 +170,7 @@ Before running the project, ensure you have:
 * A modern web browser
 * node.js installed
 * Python
-* Apache Spark 4.1.0/PySpark 4.1.0/ Delta Lake 4.2.0
+* Apache Spark 4.1.0,PySpark 4.1.0 && Delta Lake 4.2.0
 
 ---
 
