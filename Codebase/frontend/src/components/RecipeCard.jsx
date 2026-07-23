@@ -16,10 +16,6 @@ function formatDate(value) {
     timeZone: "America/Toronto",
   }).format(new Date(`${value.replace(" ", "T")}Z`));
 }
-
-function initials(name) {
-  return (name || "U").trim().slice(0, 1).toUpperCase();
-}
 function buildProfileImageUrl(url) {
   if (!url) return "";
 
@@ -68,7 +64,7 @@ function RecipeCard({ recipe, onSaveToggle, showFollow = false, onFollowChange,
         alt={`${recipe.creatorName} profile`}
       />
     ) : (
-      initials(recipe.creatorName)
+      <span className="avatar-empty">No photo</span>
     )}
   </span>
 

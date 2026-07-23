@@ -166,7 +166,13 @@ export async function followingFeed(req, res) {
         r.num_servings AS numServings,
         r.date_posted AS datePosted,
         u.username AS creatorName,
-NULL AS creatorProfileImageUrl      FROM Recipes r
+        CASE
+          WHEN u.profile_image IS NOT NULL
+               AND length(u.profile_image) > 0
+          THEN '/users/' || u.idUsers || '/profile-image'
+          ELSE NULL
+        END AS creatorProfileImageUrl
+      FROM Recipes r
       JOIN Followers f
         ON f.idFollowed = r.Users_idUsers
       JOIN Users u
@@ -177,12 +183,11 @@ NULL AS creatorProfileImageUrl      FROM Recipes r
       [loggedInUserId]
     );
 
-  
-
     return res.json({ recipes });
   } catch (err) {
+    console.error("Following feed error:", err);
 
-    return res.status (500).json({
+    return res.status(500).json({
       error: "Failed to load recipes from followed users",
     });
   }

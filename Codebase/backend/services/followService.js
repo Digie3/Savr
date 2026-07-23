@@ -28,12 +28,18 @@ export async function unfollowUser(db, idFollower, idFollowed) {
 export async function getFollowing(db, userId) {
     return db.allAsync(
         `SELECT
-        Users.idUsers,
-        Users.username,
-        Followers.followed_date
+            Users.idUsers,
+            Users.username,
+            CASE
+                WHEN Users.profile_image IS NOT NULL
+                     AND length(Users.profile_image) > 0
+                THEN '/users/' || Users.idUsers || '/profile-image'
+                ELSE NULL
+            END AS profileImageUrl,
+            Followers.followed_date
         FROM Followers
         JOIN Users
-        ON Followers.idFollowed = Users.idUsers
+            ON Followers.idFollowed = Users.idUsers
         WHERE Followers.idFollower = ?
         ORDER BY Followers.followed_date DESC`,
         [userId]
@@ -43,12 +49,18 @@ export async function getFollowing(db, userId) {
 export async function getFollowers(db, userId) {
     return db.allAsync(
         `SELECT
-        Users.idUsers,
-        Users.username,
-        Followers.followed_date
+            Users.idUsers,
+            Users.username,
+            CASE
+                WHEN Users.profile_image IS NOT NULL
+                     AND length(Users.profile_image) > 0
+                THEN '/users/' || Users.idUsers || '/profile-image'
+                ELSE NULL
+            END AS profileImageUrl,
+            Followers.followed_date
         FROM Followers
         JOIN Users
-        ON Followers.idFollower = Users.idUsers
+            ON Followers.idFollower = Users.idUsers
         WHERE Followers.idFollowed = ?
         ORDER BY Followers.followed_date DESC`,
         [userId]

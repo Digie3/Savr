@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 
 import FollowButton from "../components/FollowButton";
+import RecipeCard from "../components/RecipeCard";
 import { useAuth } from "../auth/useAuth";
 import {
   getFollowCounts,
@@ -14,14 +15,50 @@ import {
   updateProfile,
   uploadProfileImage,
 } from "../lib/profileService";
+import {
+  fetchRecipes,
+  saveRecipe,
+  unsaveRecipe,
+} from "../lib/recipes";
 import { API_BASE } from "../api";
+
+function normalizeBirthday(value) {
+  if (!value) return "";
+
+  return String(value).slice(0, 10);
+}
+
+function calculateAge(birthday) {
+  if (!birthday) return "";
+
+  const normalizedBirthday = normalizeBirthday(birthday);
+  const [year, month, day] = normalizedBirthday.split("-").map(Number);
+
+  if (!year || !month || !day) return "";
+
+  const today = new Date();
+
+  let age = today.getFullYear() - year;
+
+  const birthdayHasNotOccurred =
+    today.getMonth() + 1 < month ||
+    (today.getMonth() + 1 === month && today.getDate() < day);
+
+  if (birthdayHasNotOccurred) {
+    age -= 1;
+  }
+
+  if (age < 0) return "";
+
+  return age;
+}
 
 function Profile() {
   const { userId } = useParams();
   const { user, token, updateUser } = useAuth();
 
-  const profileUserId = userId ? Number(userId) : user?.id;
-  const isOwnProfile = user?.id === profileUserId;
+  const profileUserId = userId ? Number(userId) : Number(user?.id);
+  const isOwnProfile = Number(user?.id) === profileUserId;
 
   const [counts, setCounts] = useState({
     followersCount: 0,
@@ -38,9 +75,12 @@ function Profile() {
     country: "",
     gender: "",
     birthday: "",
-    age: "",
     profileImageUrl: "",
   });
+
+  const [recipes, setRecipes] = useState([]);
+  const [recipesLoading, setRecipesLoading] = useState(false);
+  const [recipesError, setRecipesError] = useState("");
 
   const [editing, setEditing] = useState(false);
   const [saving, setSaving] = useState(false);
@@ -72,12 +112,46 @@ function Profile() {
           username: data.username || "",
           country: data.country || "",
           gender: data.gender || "",
-          birthday: data.birthday || "",
-          age: data.age || "",
-          profileImageUrl: data.profileImageUrl || "",
+          birthday: normalizeBirthday(data.birthday),
+          profileImageUrl:
+            data.profileImageUrl ||
+            data.profile_image ||
+            "",
         });
       } catch (err) {
         console.error("Unable to load profile", err);
+      }
+    }
+
+    async function loadRecipes() {
+      try {
+        setRecipesLoading(true);
+        setRecipesError("");
+
+        const data = await fetchRecipes(token, "date", "desc");
+
+        const allRecipes = Array.isArray(data)
+          ? data
+          : Array.isArray(data.recipes)
+            ? data.recipes
+            : [];
+
+        const userRecipes = allRecipes.filter((recipe) => {
+          const creatorId =
+            recipe.creatorId ??
+            recipe.creator_id ??
+            recipe.userId ??
+            recipe.idUsers;
+
+          return Number(creatorId) === profileUserId;
+        });
+
+        setRecipes(userRecipes);
+      } catch (err) {
+        console.error("Unable to load profile recipes", err);
+        setRecipesError(err.message);
+      } finally {
+        setRecipesLoading(false);
       }
     }
 
@@ -87,6 +161,7 @@ function Profile() {
 
     loadCounts();
     loadProfile();
+    loadRecipes();
   }, [profileUserId, isOwnProfile, token]);
 
   function getProfileImageSrc(url) {
@@ -121,30 +196,52 @@ function Profile() {
     try {
       setSaving(true);
 
-      let updated = await updateProfile(token, profile);
-      const uploadedNewImage = Boolean(imageFile);
+      const profilePayload = {
+        ...profile,
+        age: calculateAge(profile.birthday),
+      };
+
+      const updatedProfile = await updateProfile(token, profilePayload);
+
+      let profileImageUrl =
+        updatedProfile.profileImageUrl ??
+        updatedProfile.profile_image ??
+        profile.profileImageUrl;
 
       if (imageFile) {
-        updated = await uploadProfileImage(token, imageFile);
+        const imageResult = await uploadProfileImage(token, imageFile);
+
+        profileImageUrl =
+          imageResult.profileImageUrl ??
+          imageResult.profile_image ??
+          profileImageUrl;
+
+        if (profileImageUrl) {
+          const separator = profileImageUrl.includes("?") ? "&" : "?";
+          profileImageUrl = `${profileImageUrl}${separator}t=${Date.now()}`;
+        }
+
         setImageFile(null);
       }
 
+      const savedBirthday = normalizeBirthday(
+        updatedProfile.birthday ?? profile.birthday
+      );
+
+      const savedUsername =
+        updatedProfile.username ?? profile.username;
+
       setProfile({
-        username: updated.username || "",
-        country: updated.country || "",
-        gender: updated.gender || "",
-        birthday: updated.birthday || "",
-        age: updated.age || "",
-        profileImageUrl: updated.profileImageUrl
-          ? uploadedNewImage
-            ? `${updated.profileImageUrl}?t=${Date.now()}`
-            : updated.profileImageUrl
-          : "",
+        username: savedUsername,
+        country: updatedProfile.country ?? profile.country,
+        gender: updatedProfile.gender ?? profile.gender,
+        birthday: savedBirthday,
+        profileImageUrl: profileImageUrl || "",
       });
 
       updateUser({
         id: user.id,
-        username: updated.username,
+        username: savedUsername,
       });
 
       setEditing(false);
@@ -152,6 +249,29 @@ function Profile() {
       alert(err.message);
     } finally {
       setSaving(false);
+    }
+  }
+
+  async function handleRecipeSaveToggle(recipeId, isSaved) {
+    try {
+      if (isSaved) {
+        await unsaveRecipe(recipeId, token);
+      } else {
+        await saveRecipe(recipeId, token);
+      }
+
+      setRecipes((currentRecipes) =>
+        currentRecipes.map((recipe) =>
+          recipe.id === recipeId
+            ? {
+                ...recipe,
+                isSaved: !isSaved,
+              }
+            : recipe
+        )
+      );
+    } catch (err) {
+      alert(err.message);
     }
   }
 
@@ -192,24 +312,26 @@ function Profile() {
   }
 
   if (!profileUserId) {
-    return <main className="page">Loading profile...</main>;
+    return <main className="profile-page">Loading profile...</main>;
   }
 
+  const calculatedAge = calculateAge(profile.birthday);
+
   return (
-    <main className="page">
+    <main className="profile-page">
       <section className="profile-card">
-        <div className="profile-avatar">
+        <div
+          className={`profile-avatar${
+            profile.profileImageUrl ? "" : " profile-avatar-empty"
+          }`}
+        >
           {profile.profileImageUrl ? (
             <img
               src={getProfileImageSrc(profile.profileImageUrl)}
               alt={`${profile.username || "User"} profile`}
             />
           ) : (
-            <span>
-              {(profile.username || `User #${profileUserId}`)
-                .charAt(0)
-                .toUpperCase()}
-            </span>
+            <span>No profile picture</span>
           )}
         </div>
 
@@ -297,6 +419,7 @@ function Profile() {
                 const imageUrl =
                   listedUser.profileImageUrl ??
                   listedUser.profile_image ??
+                  listedUser.profileImage ??
                   "";
 
                 const imageSrc = getProfileImageSrc(imageUrl);
@@ -308,14 +431,18 @@ function Profile() {
                     to={`/profile/${listedUserId}`}
                     onClick={closeFollowList}
                   >
-                    <span className="follow-user-avatar">
+                    <span
+                      className={`follow-user-avatar${
+                        imageSrc ? "" : " follow-user-avatar-empty"
+                      }`}
+                    >
                       {imageSrc ? (
                         <img
                           src={imageSrc}
                           alt={`${username} profile`}
                         />
                       ) : (
-                        username.charAt(0).toUpperCase()
+                        "No photo"
                       )}
                     </span>
 
@@ -377,6 +504,7 @@ function Profile() {
               name="birthday"
               value={profile.birthday}
               onChange={handleChange}
+              max={new Date().toISOString().slice(0, 10)}
             />
           ) : (
             profile.birthday || "-"
@@ -384,17 +512,7 @@ function Profile() {
         </p>
 
         <p>
-          <strong>Age:</strong>{" "}
-          {editing ? (
-            <input
-              type="number"
-              name="age"
-              value={profile.age}
-              onChange={handleChange}
-            />
-          ) : (
-            profile.age || "-"
-          )}
+          <strong>Age:</strong> {calculatedAge === "" ? "-" : calculatedAge}
         </p>
 
         {isOwnProfile &&
@@ -409,6 +527,52 @@ function Profile() {
           ))}
 
         {!isOwnProfile && <FollowButton userId={profileUserId} />}
+      </section>
+
+      <section className="profile-recipes-section">
+        <div className="profile-recipes-header">
+          <h2>
+            {isOwnProfile
+              ? "My Recipes"
+              : `${profile.username || "User"}'s Recipes`}
+          </h2>
+
+          {!recipesLoading && (
+            <span>
+              {recipes.length} {recipes.length === 1 ? "recipe" : "recipes"}
+            </span>
+          )}
+        </div>
+
+        {recipesLoading && (
+          <div className="feed-status">Loading recipes...</div>
+        )}
+
+        {recipesError && (
+          <div className="feed-status error-message">
+            {recipesError}
+          </div>
+        )}
+
+        {!recipesLoading &&
+          !recipesError &&
+          recipes.length === 0 && (
+            <div className="empty-feed">
+              This user has not posted any recipes yet.
+            </div>
+          )}
+
+        {!recipesLoading && !recipesError && recipes.length > 0 && (
+          <div className="feed-list">
+            {recipes.map((recipe) => (
+              <RecipeCard
+                key={recipe.id}
+                recipe={recipe}
+                onSaveToggle={handleRecipeSaveToggle}
+              />
+            ))}
+          </div>
+        )}
       </section>
     </main>
   );
