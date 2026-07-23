@@ -178,7 +178,7 @@ Before running the project, ensure you have:
 
 ### Clone the Repository
 
-Data LakeHouse (Linux only)(If not on linux, the "creator dashboard" section will not function:
+Data LakeHouse (Only necessary for the "creator dashboard" section will not function:
 ```text
 cd .../backend/lakehouse/etl
 python3 run_pipeline.py
