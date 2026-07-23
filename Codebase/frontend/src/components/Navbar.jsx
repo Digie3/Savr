@@ -12,7 +12,10 @@ const links = [
   { label: "Analytics", path: "/analytics" },
   { label: "Creator Dashboard", path: "/creator" },
   { label: "Profile", path: "/profile" },
+    { label: "Following", path: "/following" },
+
 ];
+
 
 function trackNavClick(label, path) {
   trackActivity({

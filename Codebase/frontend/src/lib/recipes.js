@@ -86,3 +86,18 @@ export async function deleteRecipe(recipeId, token) {
 
   return data;
 }
+export async function fetchFollowingRecipes(token) {
+  const response = await fetch(`${API_BASE}/following-feed`, {
+    headers: authHeaders(token),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Unable to load recipes from people you follow"
+    );
+  }
+
+  return data;
+}

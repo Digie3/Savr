@@ -1,7 +1,13 @@
 import { useEffect, useState } from "react";
-import { followUser, getFollowStatus, unfollowUser } from "../lib/followService";
+import {
+  followUser,
+  getFollowStatus,
+  unfollowUser,
+} from "../lib/followService";
 
-function FollowButton({ userId }) {
+const FOLLOW_EVENT = "savr-follow-status-changed";
+
+function FollowButton({ userId, onFollowChange }) {
   const [isFollowing, setIsFollowing] = useState(false);
   const [loading, setLoading] = useState(true);
 
@@ -18,7 +24,17 @@ function FollowButton({ userId }) {
       } catch (err) {
         console.error("Failed to load follow status", err);
       } finally {
-        if (isMounted) setLoading(false);
+        if (isMounted) {
+          setLoading(false);
+        }
+      }
+    }
+
+    function handleFollowEvent(event) {
+      const changedUserId = Number(event.detail?.userId);
+
+      if (changedUserId === Number(userId)) {
+        setIsFollowing(Boolean(event.detail.isFollowing));
       }
     }
 
@@ -26,30 +42,57 @@ function FollowButton({ userId }) {
       loadFollowStatus();
     }
 
+    window.addEventListener(FOLLOW_EVENT, handleFollowEvent);
+
     return () => {
       isMounted = false;
+      window.removeEventListener(FOLLOW_EVENT, handleFollowEvent);
     };
   }, [userId]);
 
   async function handleClick() {
-    setLoading(true);
+    try {
+      setLoading(true);
 
-    const data = isFollowing
-      ? await unfollowUser(userId)
-      : await followUser(userId);
+      const newStatus = !isFollowing;
 
-    if (data.error) {
-      alert(data.error);
+      const data = isFollowing
+        ? await unfollowUser(userId)
+        : await followUser(userId);
+
+      if (data.error) {
+        alert(data.error);
+        return;
+      }
+
+      setIsFollowing(newStatus);
+
+      // Update every FollowButton for this same creator.
+      window.dispatchEvent(
+        new CustomEvent(FOLLOW_EVENT, {
+          detail: {
+            userId: Number(userId),
+            isFollowing: newStatus,
+          },
+        })
+      );
+
+      onFollowChange?.(Number(userId), newStatus);
+    } catch (err) {
+      console.error("Unable to update follow status", err);
+      alert("Unable to update follow status");
+    } finally {
       setLoading(false);
-      return;
     }
-
-    setIsFollowing(!isFollowing);
-    setLoading(false);
   }
 
   return (
-    <button onClick={handleClick} className="follow-btn" disabled={loading}>
+    <button
+      type="button"
+      onClick={handleClick}
+      className="follow-btn"
+      disabled={loading}
+    >
       {loading ? "..." : isFollowing ? "Unfollow" : "Follow"}
     </button>
   );

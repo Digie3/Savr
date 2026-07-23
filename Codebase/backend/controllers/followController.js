@@ -149,3 +149,41 @@ export async function counts(req, res) {
     }
 }
 
+export async function followingFeed(req, res) {
+  try {
+    const db = getDB();
+    const loggedInUserId = req.user.id;
+
+    const recipes = await db.allAsync(
+      `
+      SELECT
+        r.idRecipes AS id,
+        r.Users_idUsers AS creatorId,
+        r.title,
+        r.description,
+        r.prep_time AS prepTime,
+        r.cooking_time AS cookingTime,
+        r.num_servings AS numServings,
+        r.date_posted AS datePosted,
+        u.username AS creatorName,
+NULL AS creatorProfileImageUrl      FROM Recipes r
+      JOIN Followers f
+        ON f.idFollowed = r.Users_idUsers
+      JOIN Users u
+        ON u.idUsers = r.Users_idUsers
+      WHERE f.idFollower = ?
+      ORDER BY r.date_posted DESC
+      `,
+      [loggedInUserId]
+    );
+
+  
+
+    return res.json({ recipes });
+  } catch (err) {
+
+    return res.status (500).json({
+      error: "Failed to load recipes from followed users",
+    });
+  }
+}

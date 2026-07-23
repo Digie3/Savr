@@ -107,7 +107,7 @@ function Home() {
             onChange={(e) => setOrder(e.target.value)}
           >
             {sortBy === "date" ? (
-              <>
+              <>. 
                 <option value="desc">Newest First</option>
                 <option value="asc">Oldest First</option>
               </>

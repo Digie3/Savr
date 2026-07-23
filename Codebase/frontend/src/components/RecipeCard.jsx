@@ -33,7 +33,8 @@ function buildProfileImageUrl(url) {
 
   return `${API_BASE}${url}`;
 }
-function RecipeCard({ recipe, onSaveToggle, showFollow = false }) {
+function RecipeCard({ recipe, onSaveToggle, showFollow = false, onFollowChange,
+ }) {
   const { token, user } = useAuth();
   
   const navigate = useNavigate();
@@ -79,7 +80,8 @@ function RecipeCard({ recipe, onSaveToggle, showFollow = false }) {
 
           <div className="recipe-card-actions">
             {showFollow && token && recipe.creatorId && !isOwnRecipe && (
-              <FollowButton userId={recipe.creatorId} />
+              <FollowButton userId={recipe.creatorId}
+               onFollowChange={onFollowChange} />
             )}
 
             <button

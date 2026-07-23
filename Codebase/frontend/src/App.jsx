@@ -13,6 +13,7 @@ import CreateRecipe from "./pages/CreateRecipe";
 import RecipeDetails from "./pages/RecipeDetails";
 import Analytics from "./pages/Analytics";
 import Creator from "./pages/Creator";
+import FollowingFeed from "./pages/FollowingFeed";
 
 function App() {
   return (
@@ -32,9 +33,8 @@ function App() {
         <Route path="/recipes/:recipeId" element={<RecipeDetails />} />
         <Route path="/recipe" element={<Home />} />
         <Route path="/analytics" element={<Analytics />} />
-        <Route path="/creator" element={<ProtectedRoute> <Creator /> </ProtectedRoute>
-    }
-/>
+        <Route path="/creator" element={<ProtectedRoute> <Creator /> </ProtectedRoute>} />
+        <Route path="/following" element={<ProtectedRoute> <FollowingFeed /> </ProtectedRoute>} />
       </Routes>
     </BrowserRouter>
   );

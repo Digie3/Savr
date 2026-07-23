@@ -1,9 +1,13 @@
 import { useEffect, useState } from "react";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 
 import FollowButton from "../components/FollowButton";
 import { useAuth } from "../auth/useAuth";
-import { getFollowCounts } from "../lib/followService";
+import {
+  getFollowCounts,
+  getFollowers,
+  getFollowing,
+} from "../lib/followService";
 import {
   getProfile,
   getUserProfile,
@@ -24,6 +28,11 @@ function Profile() {
     followingCount: 0,
   });
 
+  const [followListType, setFollowListType] = useState(null);
+  const [followUsers, setFollowUsers] = useState([]);
+  const [followListLoading, setFollowListLoading] = useState(false);
+  const [followListError, setFollowListError] = useState("");
+
   const [profile, setProfile] = useState({
     username: "",
     country: "",
@@ -41,12 +50,16 @@ function Profile() {
     if (!profileUserId || !token) return;
 
     async function loadCounts() {
-      const data = await getFollowCounts(profileUserId);
+      try {
+        const data = await getFollowCounts(profileUserId);
 
-      setCounts({
-        followersCount: data.followersCount || 0,
-        followingCount: data.followingCount || 0,
-      });
+        setCounts({
+          followersCount: data.followersCount || 0,
+          followingCount: data.followingCount || 0,
+        });
+      } catch (err) {
+        console.error("Unable to load follow counts", err);
+      }
     }
 
     async function loadProfile() {
@@ -64,16 +77,20 @@ function Profile() {
           profileImageUrl: data.profileImageUrl || "",
         });
       } catch (err) {
-        console.error(err);
+        console.error("Unable to load profile", err);
       }
     }
+
+    setFollowListType(null);
+    setFollowUsers([]);
+    setFollowListError("");
 
     loadCounts();
     loadProfile();
   }, [profileUserId, isOwnProfile, token]);
 
   function getProfileImageSrc(url) {
-    if (!url) return "";
+    if (!url || typeof url !== "string") return "";
 
     if (
       url.startsWith("http") ||
@@ -86,17 +103,17 @@ function Profile() {
     return `${API_BASE}${url}`;
   }
 
-  function handleChange(e) {
-    const { name, value } = e.target;
+  function handleChange(event) {
+    const { name, value } = event.target;
 
-    setProfile((prev) => ({
-      ...prev,
+    setProfile((previousProfile) => ({
+      ...previousProfile,
       [name]: value,
     }));
   }
 
-  function handleImageChange(e) {
-    const file = e.target.files?.[0] || null;
+  function handleImageChange(event) {
+    const file = event.target.files?.[0] || null;
     setImageFile(file);
   }
 
@@ -105,6 +122,7 @@ function Profile() {
       setSaving(true);
 
       let updated = await updateProfile(token, profile);
+      const uploadedNewImage = Boolean(imageFile);
 
       if (imageFile) {
         updated = await uploadProfileImage(token, imageFile);
@@ -118,7 +136,7 @@ function Profile() {
         birthday: updated.birthday || "",
         age: updated.age || "",
         profileImageUrl: updated.profileImageUrl
-          ? imageFile
+          ? uploadedNewImage
             ? `${updated.profileImageUrl}?t=${Date.now()}`
             : updated.profileImageUrl
           : "",
@@ -135,6 +153,42 @@ function Profile() {
     } finally {
       setSaving(false);
     }
+  }
+
+  async function openFollowList(type) {
+    if (followListType === type) {
+      closeFollowList();
+      return;
+    }
+
+    try {
+      setFollowListType(type);
+      setFollowUsers([]);
+      setFollowListError("");
+      setFollowListLoading(true);
+
+      const data =
+        type === "followers"
+          ? await getFollowers(profileUserId)
+          : await getFollowing(profileUserId);
+
+      const users =
+        type === "followers"
+          ? data.followers || []
+          : data.following || [];
+
+      setFollowUsers(Array.isArray(users) ? users : []);
+    } catch (err) {
+      setFollowListError(err.message);
+    } finally {
+      setFollowListLoading(false);
+    }
+  }
+
+  function closeFollowList() {
+    setFollowListType(null);
+    setFollowUsers([]);
+    setFollowListError("");
   }
 
   if (!profileUserId) {
@@ -174,9 +228,104 @@ function Profile() {
         <p>{isOwnProfile ? "My Profile" : "Creator Profile"}</p>
 
         <div className="profile-stats">
-          <span>{counts.followersCount} followers</span>
-          <span>{counts.followingCount} following</span>
+          <button
+            type="button"
+            className="profile-stat-button"
+            onClick={() => openFollowList("followers")}
+          >
+            <strong>{counts.followersCount}</strong> followers
+          </button>
+
+          <button
+            type="button"
+            className="profile-stat-button"
+            onClick={() => openFollowList("following")}
+          >
+            <strong>{counts.followingCount}</strong> following
+          </button>
         </div>
+
+        {followListType && (
+          <section className="follow-inline-panel">
+            <div className="follow-inline-header">
+              <h2>
+                {followListType === "followers"
+                  ? "Followers"
+                  : "Following"}
+              </h2>
+
+              <button
+                type="button"
+                className="follow-inline-close"
+                onClick={closeFollowList}
+                aria-label="Close follow list"
+              >
+                ×
+              </button>
+            </div>
+
+            {followListLoading && <p>Loading...</p>}
+
+            {followListError && (
+              <p className="error-message">{followListError}</p>
+            )}
+
+            {!followListLoading &&
+              !followListError &&
+              followUsers.length === 0 && (
+                <p>
+                  No{" "}
+                  {followListType === "followers"
+                    ? "followers"
+                    : "followed users"}{" "}
+                  yet.
+                </p>
+              )}
+
+            <div className="follow-user-list">
+              {followUsers.map((listedUser) => {
+                const listedUserId =
+                  listedUser.idUsers ??
+                  listedUser.id ??
+                  listedUser.userId;
+
+                if (!listedUserId) return null;
+
+                const username =
+                  listedUser.username || `User #${listedUserId}`;
+
+                const imageUrl =
+                  listedUser.profileImageUrl ??
+                  listedUser.profile_image ??
+                  "";
+
+                const imageSrc = getProfileImageSrc(imageUrl);
+
+                return (
+                  <Link
+                    key={listedUserId}
+                    className="follow-user-row"
+                    to={`/profile/${listedUserId}`}
+                    onClick={closeFollowList}
+                  >
+                    <span className="follow-user-avatar">
+                      {imageSrc ? (
+                        <img
+                          src={imageSrc}
+                          alt={`${username} profile`}
+                        />
+                      ) : (
+                        username.charAt(0).toUpperCase()
+                      )}
+                    </span>
+
+                    <strong>{username}</strong>
+                  </Link>
+                );
+              })}
+            </div>
+          </section>
+        )}
 
         {isOwnProfile && editing && (
           <p>
@@ -250,11 +399,13 @@ function Profile() {
 
         {isOwnProfile &&
           (editing ? (
-            <button onClick={handleSave} disabled={saving}>
+            <button type="button" onClick={handleSave} disabled={saving}>
               {saving ? "Saving..." : "Save"}
             </button>
           ) : (
-            <button onClick={() => setEditing(true)}>Edit Profile</button>
+            <button type="button" onClick={() => setEditing(true)}>
+              Edit Profile
+            </button>
           ))}
 
         {!isOwnProfile && <FollowButton userId={profileUserId} />}
