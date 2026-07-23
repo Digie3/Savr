@@ -169,12 +169,20 @@ Before running the project, ensure you have:
 * Maven
 * A modern web browser
 * node.js installed
+* Python
+* Apache Spark 4.1.0,PySpark 4.1.0 && Delta Lake 4.2.0
 
 ---
 
 ## Running the Application
 
 ### Clone the Repository
+
+Data LakeHouse (Linux only)(If not on linux, the "creator dashboard" section will not function:
+```text
+cd .../backend/lakehouse/etl
+python3 run_pipeline.py
+```
 
  Backend (terminal 1):
  If this is your first time running, use 'npm install' after navigating to both the backend and frontend folders.
@@ -183,13 +191,14 @@ cd .../backend
 node index.js
 ```
 
-
  Frontend (terminal 2):
 ```text
 cd .../frontend
 npm run dev
 ```
 Your frontend terminal should give you a localhost address, copy and paste it into your browser.
+
+
 ---
 
 ### Database
