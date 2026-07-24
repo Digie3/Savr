@@ -106,6 +106,7 @@ function RecipeCard({ recipe, onSaveToggle, showFollow = false, onFollowChange,
           <span>{recipe.prepTime + recipe.cookingTime} min</span>
           <span>{recipe.numServings} servings</span>
           <span>{recipe.commentCount} comments</span>
+          <span>{recipe.viewCount} views</span>
         </div>
       </div>
     </article>
