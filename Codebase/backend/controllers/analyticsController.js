@@ -2,9 +2,7 @@ import { getDB } from "../db.js";
 
 import {
     logActivityService,
-    getAnalyticsSummaryService,
-    getRecentEventsService,
-    getTrendingEntitiesService,
+    getAnalyticsDashboardService
 } from "../services/analyticsService.js";
 
 export async function logActivityEvent(req, res) {
@@ -19,43 +17,25 @@ export async function logActivityEvent(req, res) {
     }
 }
 
-export async function getAnalyticsSummary(req, res) {
+export async function analyticsDashboard(req, res) {
     try {
-        const db = getDB();
-        const summary = await getAnalyticsSummaryService(db);
-        return res.json(summary);
+        const dashboard = await getAnalyticsDashboardService(req.user.username);
+
+        if (!dashboard) {
+            return res.status(404).json({ error: "Analytics not found" });
+        }
+
+        // Convert DuckDB BigInts
+        Object.keys(dashboard).forEach((key) => {
+            if (typeof dashboard[key] === "bigint") {
+                dashboard[key] = Number(dashboard[key]);
+            }
+        });
+
+        res.json(dashboard);
 
     } catch (err) {
         console.error(err);
-
-        return res.status(500).json({ error: "Server error" });
-    }
-}
-
-export async function getAnalyticsEvents(req, res) {
-    try {
-        const db = getDB();
-        const events = await getRecentEventsService(db, req.query.limit);
-
-        return res.json({ events });
-
-    } catch (err) {
-        console.error(err);
-
-        return res.status(500).json({ error: "Server error" });
-    }
-}
-
-export async function getTrendingAnalytics(req, res) {
-    try {
-        const db = getDB();
-        const entities = await getTrendingEntitiesService(db, req.query.days, req.query.limit);
-
-        return res.json({ entities });
-
-    } catch (err) {
-        console.error(err);
-
-        return res.status(500).json({ error: "Server error" });
+        res.status(500).json({ error: "Failed to load analytics" });
     }
 }

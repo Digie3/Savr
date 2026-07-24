@@ -1,4 +1,15 @@
-.DS_Store
+# Python
+.venv/
+**/.venv/
+__pycache__/
+*.pyc
+
+# Generated lakehouse data
+Codebase/backend/lakehouse/data/
+
+# Temporary lakehouse error files
+Codebase/backend/lakehouse/etl/*-error.txt
+Codebase/backend/lakehouse/etl/bronze-full-error.txt.DS_Store
 node_modules/
 
 Codebase/backend/node_modules/

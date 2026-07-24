@@ -43,3 +43,30 @@ export async function getFollowCounts(userId) {
 
   return response.json();
 }
+export async function getFollowers(userId) {
+  const response = await fetch(`${API_BASE}/followers/${userId}`, {
+    headers: authHeaders(),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || "Unable to load followers");
+  }
+
+  return data;
+}
+
+export async function getFollowing(userId) {
+  const response = await fetch(`${API_BASE}/following/${userId}`, {
+    headers: authHeaders(),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || "Unable to load following");
+  }
+
+  return data;
+}

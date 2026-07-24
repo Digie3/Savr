@@ -42,21 +42,21 @@ export async function trackActivity(event) {
   }
 }
 
-export async function fetchAnalyticsSummary() {
-  const response = await fetch(`${API_BASE_URL}/analytics/summary`);
+export async function fetchAnalyticsDashboard() {
+
+  const token = localStorage.getItem("savr_token");
+
+  const response = await fetch(
+    `${API_BASE_URL}/analytics/dashboard`,
+    {
+      headers: {
+        Authorization: `Bearer ${token}`,
+      },
+    }
+  );
 
   if (!response.ok) {
-    throw new Error("Unable to load analytics summary");
-  }
-
-  return response.json();
-}
-
-export async function fetchRecentEvents(limit = 20) {
-  const response = await fetch(`${API_BASE_URL}/analytics/events?limit=${limit}`);
-
-  if (!response.ok) {
-    throw new Error("Unable to load activity events");
+    throw new Error("Unable to load analytics");
   }
 
   return response.json();

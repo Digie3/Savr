@@ -16,10 +16,6 @@ function formatDate(value) {
     timeZone: "America/Toronto",
   }).format(new Date(`${value.replace(" ", "T")}Z`));
 }
-
-function initials(name) {
-  return (name || "U").trim().slice(0, 1).toUpperCase();
-}
 function buildProfileImageUrl(url) {
   if (!url) return "";
 
@@ -33,7 +29,8 @@ function buildProfileImageUrl(url) {
 
   return `${API_BASE}${url}`;
 }
-function RecipeCard({ recipe, onSaveToggle, showFollow = false }) {
+function RecipeCard({ recipe, onSaveToggle, showFollow = false, onFollowChange,
+ }) {
   const { token, user } = useAuth();
   
   const navigate = useNavigate();
@@ -67,7 +64,7 @@ function RecipeCard({ recipe, onSaveToggle, showFollow = false }) {
         alt={`${recipe.creatorName} profile`}
       />
     ) : (
-      initials(recipe.creatorName)
+      <span className="avatar-empty">No photo</span>
     )}
   </span>
 
@@ -79,7 +76,8 @@ function RecipeCard({ recipe, onSaveToggle, showFollow = false }) {
 
           <div className="recipe-card-actions">
             {showFollow && token && recipe.creatorId && !isOwnRecipe && (
-              <FollowButton userId={recipe.creatorId} />
+              <FollowButton userId={recipe.creatorId}
+               onFollowChange={onFollowChange} />
             )}
 
             <button
@@ -108,6 +106,7 @@ function RecipeCard({ recipe, onSaveToggle, showFollow = false }) {
           <span>{recipe.prepTime + recipe.cookingTime} min</span>
           <span>{recipe.numServings} servings</span>
           <span>{recipe.commentCount} comments</span>
+          <span>{recipe.viewCount} views</span>
         </div>
       </div>
     </article>

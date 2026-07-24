@@ -6,6 +6,7 @@ const VALID_EVENT_TYPES = new Set([
   "page_view",
   "recipe_view",
   "recipe_create",
+  "recipe_delete",
   "recipe_save",
   "recipe_unsave",
   "comment_create",
@@ -130,112 +131,5 @@ export async function logActivity(db, input) {
       JSON.stringify(event.metadata),
       event.source,
     ]
-  );
-}
-
-export async function getAnalyticsSummary(db) {
-  const totals = await db.getAsync(`
-    SELECT
-      COUNT(*) AS "totalEvents",
-      COUNT(DISTINCT COALESCE(CAST(Users_idUsers AS TEXT), username)) AS "uniqueActors",
-      MAX(created_at) AS "lastEventAt"
-    FROM ActivityEvents
-  `);
-
-  const byType = await db.allAsync(`
-    SELECT event_type AS "eventType", COUNT(*) AS "count"
-    FROM ActivityEvents
-    GROUP BY event_type
-    ORDER BY count DESC, event_type ASC
-  `);
-
-  const recentByDay = await db.allAsync(`
-    SELECT date(created_at) AS "day", COUNT(*) AS "count"
-    FROM ActivityEvents
-    WHERE created_at >= datetime('now', '-14 days')
-    GROUP BY date(created_at)
-    ORDER BY day ASC
-  `);
-
-  const topEntities = await db.allAsync(`
-    SELECT
-      entity_type AS "entityType",
-      entity_id AS "entityId",
-      COUNT(*) AS "count"
-    FROM ActivityEvents
-    WHERE entity_type IS NOT NULL AND entity_id IS NOT NULL AND entity_id != ''
-    GROUP BY entity_type, entity_id
-    ORDER BY count DESC, entity_type ASC, entity_id ASC
-    LIMIT 10
-  `);
-
-  const actors = await db.allAsync(`
-    SELECT
-      COALESCE(CAST(Users_idUsers AS TEXT), username, 'anonymous') AS "actor",
-      COUNT(*) AS "count",
-      MAX(created_at) AS "lastEventAt"
-    FROM ActivityEvents
-    GROUP BY COALESCE(CAST(Users_idUsers AS TEXT), username, 'anonymous')
-    ORDER BY count DESC, actor ASC
-  `);
-
-  return {
-    totalEvents: totals?.totalEvents || 0,
-    uniqueActors: totals?.uniqueActors || 0,
-    lastEventAt: totals?.lastEventAt || null,
-    byType,
-    recentByDay,
-    topEntities,
-    actors,
-  };
-}
-
-export async function getRecentEvents(db, limit = 25) {
-  const safeLimit = Math.min(Math.max(Number(limit) || 25, 1), 100);
-
-  return db.allAsync(
-    `
-      SELECT
-        idActivityEvents AS "id",
-        Users_idUsers AS "userId",
-        username,
-        event_type AS "eventType",
-        entity_type AS "entityType",
-        entity_id AS "entityId",
-        event_value AS "eventValue",
-        metadata_json AS "metadataJson",
-        source,
-        created_at AS "createdAt"
-      FROM ActivityEvents
-      ORDER BY datetime(created_at) DESC, idActivityEvents DESC
-      LIMIT ?
-    `,
-    [safeLimit]
-  );
-}
-
-export async function getTrendingEntities(db, days = 7, limit = 10) {
-  const safeDays = Math.min(Math.max(Number(days) || 7, 1), 90);
-  const safeLimit = Math.min(Math.max(Number(limit) || 10, 1), 50);
-
-  return db.allAsync(
-    `
-      SELECT
-        entity_type AS "entityType",
-        entity_id AS "entityId",
-        COUNT(*) AS "eventCount",
-        COUNT(DISTINCT COALESCE(CAST(Users_idUsers AS TEXT), username)) AS "actorCount",
-        MAX(created_at) AS "lastEventAt"
-      FROM ActivityEvents
-      WHERE
-        created_at >= datetime('now', ?)
-        AND entity_type IS NOT NULL
-        AND entity_id IS NOT NULL
-        AND entity_id != ''
-      GROUP BY entity_type, entity_id
-      ORDER BY eventCount DESC, actorCount DESC, lastEventAt DESC
-      LIMIT ?
-    `,
-    [`-${safeDays} days`, safeLimit]
   );
 }

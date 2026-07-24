@@ -11,8 +11,8 @@ export function buildMediaUrl(path) {
   return `${API_BASE}${path}`;
 }
 
-export async function fetchRecipes(token) {
-  const response = await fetch(`${API_BASE}/recipes`, {
+export async function fetchRecipes(token, sortBy = "date", order = "desc") {
+  const response = await fetch(`${API_BASE}/recipes?sort=${sortBy}&order=${order}`, {
     headers: authHeaders(token),
   });
 
@@ -71,4 +71,33 @@ export async function unsaveRecipe(recipeId, token) {
   }
 
   return response.json();
+}
+
+export async function deleteRecipe(recipeId, token) {
+  const response = await fetch(`${API_BASE}/recipes/${recipeId}`, {
+    method: "DELETE",
+    headers: authHeaders(token),
+  });
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(data.error || "Unable to delete recipe");
+  }
+
+  return data;
+}
+export async function fetchFollowingRecipes(token) {
+  const response = await fetch(`${API_BASE}/following-feed`, {
+    headers: authHeaders(token),
+  });
+
+  const data = await response.json().catch(() => ({}));
+
+  if (!response.ok) {
+    throw new Error(
+      data.error || "Unable to load recipes from people you follow"
+    );
+  }
+
+  return data;
 }
