@@ -32,7 +32,7 @@ function App() {
         <Route path="/create" element={<ProtectedRoute><CreateRecipe /></ProtectedRoute>} />
         <Route path="/recipes/:recipeId" element={<RecipeDetails />} />
         <Route path="/recipe" element={<Home />} />
-        <Route path="/analytics" element={<Analytics />} />
+        <Route path="/analytics" element={<ProtectedRoute> <Analytics /></ProtectedRoute>} />
         <Route path="/creator" element={<ProtectedRoute> <Creator /> </ProtectedRoute>} />
         <Route path="/following" element={<ProtectedRoute> <FollowingFeed /> </ProtectedRoute>} />
       </Routes>

@@ -240,4 +240,52 @@ engagement_metrics.write \
 
 print("Engagement metrics created.")
 
+# --------------------------------------------------
+# Analytics Metrics
+# --------------------------------------------------
+activity_dashboard = (
+    activity
+    .select(
+        col("idActivityEvents"),
+        col("Users_idUsers"),
+        col("username"),
+        col("event_type"),
+        col("entity_type"),
+        col("entity_id"),
+        col("event_value"),
+        col("metadata_json"),
+        col("source"),
+        col("created_at")
+    )
+)
+
+activity_dashboard.write \
+    .format("delta") \
+    .mode("overwrite") \
+    .save(os.path.join(GOLD, "activity_dashboard"))
+
+print("Analytics created.")
+
+## User Summary
+user_activity_summary = (
+    activity
+    .groupBy(
+        "username",
+        "event_type",
+        "entity_type",
+        "entity_id"
+    )
+    .agg(
+        count("*").alias("event_count"),
+        max("created_at").alias("last_event")
+    )
+)
+
+user_activity_summary.write \
+    .format("delta") \
+    .mode("overwrite") \
+    .save(os.path.join(GOLD, "user_activity_summary"))
+
+print("User analytics summary created.")
+
 print("\nGold layer successfully created.")

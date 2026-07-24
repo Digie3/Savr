@@ -1,16 +1,13 @@
 import express from "express";
+import { requireAuth } from "../auth.js";
 import {
     logActivityEvent,
-    getAnalyticsSummary,
-    getAnalyticsEvents,
-    getTrendingAnalytics,
+    analyticsDashboard
 } from "../controllers/analyticsController.js";
 
 const router = express.Router();
 
 router.post("/activity", logActivityEvent);
-router.get("/analytics/summary", getAnalyticsSummary);
-router.get("/analytics/events", getAnalyticsEvents);
-router.get("/analytics/trending", getTrendingAnalytics);
+router.get("/analytics/dashboard", requireAuth, analyticsDashboard);
 
 export default router;

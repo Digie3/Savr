@@ -1,9 +1,9 @@
 import { useEffect, useRef, useState } from "react";
 
 import {
-  fetchAnalyticsSummary,
-  fetchRecentEvents,
+  fetchAnalyticsDashboard,
   trackActivity,
+  getStoredUser,
 } from "../lib/activity";
 
 const TORONTO_TIME_ZONE = "America/Toronto";
@@ -106,16 +106,24 @@ function Analytics() {
           eventType: "page_view",
           entityType: "page",
           entityId: "analytics",
-          metadata: { path: "/analytics" },
+          metadata: {
+            path: "/analytics",
+          },
         });
 
-        const [summaryData, eventData] = await Promise.all([
-          fetchAnalyticsSummary(),
-          fetchRecentEvents(15),
-        ]);
+        const data = await fetchAnalyticsDashboard();
 
-        setSummary(summaryData);
-        setEvents(eventData.events || []);
+        setSummary({
+          totalEvents: data.totalEvents,
+          uniqueActors: data.uniqueActors,
+          lastEventAt: data.lastEventAt,
+          byType: data.byType,
+          topEntities: data.topEntities,
+          actors: data.actors,
+        });
+
+        setEvents(data.events);
+
       } catch (err) {
         setError(err.message);
       }
@@ -131,8 +139,7 @@ function Analytics() {
           <p className="badge">Data Lakehouse</p>
           <h1>Activity Analytics</h1>
           <p>
-            Prototype event layer for tracking product usage, recipe engagement,
-            and future recommendation signals.
+            A live user activity tracker (via. data lakehouse)
           </p>
         </div>
       </section>
