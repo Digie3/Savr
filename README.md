@@ -145,7 +145,7 @@ Handles:
 Handles:
 
 * Retrieval of recipe and ingredient-related images
-* Ingredient image search via the Google Custom Search API
+* Ingredient image search via the Google Custom Search API, with a built-in local fallback so it works with no API keys configured
 
 See [Documentation/image-service.md](Documentation/image-service.md) for setup, environment variables, endpoint reference, and troubleshooting.
 

@@ -13,6 +13,7 @@ function IngredientImageSearch({ ingredientName, selectedImageUrl, onSelect, dis
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [provider, setProvider] = useState("");
 
   async function handleSearch() {
     const term = (query || ingredientName || "").trim();
@@ -30,15 +31,15 @@ function IngredientImageSearch({ ingredientName, selectedImageUrl, onSelect, dis
       const data = await searchIngredientImages(term, token, 6);
       const images = data.images || [];
       setResults(images);
+      setProvider(data.provider || "");
 
-      if (data.configured === false) {
-        setMessage(data.message || "Image search is not configured.");
-      } else if (images.length === 0) {
+      if (images.length === 0) {
         setMessage("No images found. Try a different search term.");
       }
     } catch (err) {
       setError(err.message);
       setResults([]);
+      setProvider("");
     } finally {
       setLoading(false);
     }
@@ -98,9 +99,13 @@ function IngredientImageSearch({ ingredientName, selectedImageUrl, onSelect, dis
         </div>
       )}
 
+      {provider === "fallback" && results.length > 0 && (
+        <p className="image-search-note">Using local image suggestions</p>
+      )}
+
       {selectedImageUrl && (
         <p className="image-search-selected">
-          Using a web image for this ingredient.{" "}
+          Image selected for this ingredient.{" "}
           <button
             type="button"
             className="link-button"

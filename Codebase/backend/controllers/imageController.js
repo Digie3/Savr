@@ -2,8 +2,11 @@ import {
   isImageSearchConfigured,
   searchIngredientImages,
 } from "../services/imageService.js";
+import {
+  getFallbackImages,
+  renderFallbackSvg,
+} from "../services/fallbackImageService.js";
 
-const PROVIDER = "google-custom-search";
 const MAX_QUERY_LENGTH = 100;
 const DEFAULT_LIMIT = 6;
 const MAX_LIMIT = 10;
@@ -36,17 +39,18 @@ export async function searchImages(req, res) {
       limit = parsed;
     }
 
-    // Mock-safe: with no API keys, return a clear, non-crashing response so the
-    // app (and the create-recipe page) keeps working without Google credentials.
+    // No Google keys: fall back to built-in local image suggestions so the app
+    // works out of the box. The frontend treats these like any other results.
     if (!isImageSearchConfigured()) {
+      const origin = `${req.protocol}://${req.get("host")}`;
+      const images = getFallbackImages(rawQuery, limit, origin);
+
       return res.json({
         query: rawQuery,
-        images: [],
-        provider: PROVIDER,
+        images,
+        provider: "fallback",
         configured: false,
         cached: false,
-        message:
-          "Image search is not configured. Set GOOGLE_SEARCH_API_KEY and GOOGLE_SEARCH_ENGINE_ID to enable it.",
       });
     }
 
@@ -55,7 +59,7 @@ export async function searchImages(req, res) {
     return res.json({
       query: rawQuery,
       images,
-      provider: PROVIDER,
+      provider: "google",
       configured: true,
       cached,
     });
@@ -70,4 +74,13 @@ export async function searchImages(req, res) {
 
     return res.status(500).json({ error: "Unable to search for images" });
   }
+}
+
+// GET /images/fallback/:file  (public — referenced directly by <img> tags)
+// Serves the locally generated SVG tile for a fallback ingredient image.
+export function serveFallbackImage(req, res) {
+  const svg = renderFallbackSvg(req.params.file || "");
+  res.set("Content-Type", "image/svg+xml");
+  res.set("Cache-Control", "public, max-age=86400");
+  return res.send(svg);
 }
