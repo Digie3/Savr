@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { useAuth } from "../auth/useAuth";
 import { searchIngredientImages } from "../lib/imageService";
+import { buildMediaUrl } from "../lib/recipes";
 
 // Per-ingredient "search the web for an image" picker.
 // Calls the backend Image Service and lets the user select one suggested image.
@@ -13,6 +14,7 @@ function IngredientImageSearch({ ingredientName, selectedImageUrl, onSelect, dis
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
   const [message, setMessage] = useState("");
+  const [provider, setProvider] = useState("");
 
   async function handleSearch() {
     const term = (query || ingredientName || "").trim();
@@ -30,15 +32,15 @@ function IngredientImageSearch({ ingredientName, selectedImageUrl, onSelect, dis
       const data = await searchIngredientImages(term, token, 6);
       const images = data.images || [];
       setResults(images);
+      setProvider(data.provider || "");
 
-      if (data.configured === false) {
-        setMessage(data.message || "Image search is not configured.");
-      } else if (images.length === 0) {
+      if (images.length === 0) {
         setMessage("No images found. Try a different search term.");
       }
     } catch (err) {
       setError(err.message);
       setResults([]);
+      setProvider("");
     } finally {
       setLoading(false);
     }
@@ -88,7 +90,7 @@ function IngredientImageSearch({ ingredientName, selectedImageUrl, onSelect, dis
                 title={img.title || img.source || "Suggested image"}
               >
                 <img
-                  src={img.thumbnailUrl || img.url}
+                  src={buildMediaUrl(img.thumbnailUrl || img.url)}
                   alt={img.title || `Suggested image for ${ingredientName || "ingredient"}`}
                   loading="lazy"
                 />
@@ -98,9 +100,13 @@ function IngredientImageSearch({ ingredientName, selectedImageUrl, onSelect, dis
         </div>
       )}
 
+      {provider === "fallback" && results.length > 0 && (
+        <p className="image-search-note">Using local image suggestions</p>
+      )}
+
       {selectedImageUrl && (
         <p className="image-search-selected">
-          Using a web image for this ingredient.{" "}
+          Image selected for this ingredient.{" "}
           <button
             type="button"
             className="link-button"

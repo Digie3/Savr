@@ -1,4 +1,4 @@
-import { cleanupUploadedFiles, isValidExternalImageUrl } from "../helpers/imageHelper.js";
+import { cleanupUploadedFiles, isAllowedIngredientImageUrl } from "../helpers/imageHelper.js";
 
 // Recipe Service - POST recipe
 export async function createRecipeService(db, req) {
@@ -119,7 +119,7 @@ export async function createRecipeService(db, req) {
       if (ingredientImage) {
         ingredientMediaUrl = `/uploads/user_${req.user.id}/ingredients/${ingredientImage.filename}`;
       }
-      else if (isValidExternalImageUrl(currIngredient.imageUrl)) {
+      else if (isAllowedIngredientImageUrl(currIngredient.imageUrl)) {
         ingredientMediaUrl = currIngredient.imageUrl;
       }
 

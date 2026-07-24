@@ -145,7 +145,7 @@ Handles:
 Handles:
 
 * Retrieval of recipe and ingredient-related images
-* Ingredient image search via the Google Custom Search API
+* Ingredient image search via the Google Custom Search API, with a built-in local fallback so it works with no API keys configured
 
 See [Documentation/image-service.md](Documentation/image-service.md) for setup, environment variables, endpoint reference, and troubleshooting.
 
@@ -183,6 +183,24 @@ Data LakeHouse (Only necessary for the "creator dashboard" section will not func
 cd .../backend/lakehouse/etl
 python3 run_pipeline.py
 ```
+
+### Environment Configuration
+
+The backend reads its settings from a `.env` file. Copy the provided template:
+
+```text
+cd .../backend
+cp .env.example .env
+```
+
+**No configuration is required to run the app** — the defaults work out of the box. Google image-search credentials are optional:
+
+* Leave `GOOGLE_SEARCH_API_KEY` and `GOOGLE_SEARCH_ENGINE_ID` **blank** to use the built-in local ingredient image suggestions — image search is fully functional this way.
+* Fill in **both** only if you want **live Google web-image search**.
+
+See [Documentation/image-service.md](Documentation/image-service.md) for details.
+
+---
 
  Backend (terminal 1):
  If this is your first time running, use 'npm install' after navigating to both the backend and frontend folders.

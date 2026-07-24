@@ -1112,6 +1112,13 @@ body {
   font-weight: 600;
 }
 
+.image-search-note {
+  margin-top: 0.4rem;
+  color: #6b8a82;
+  font-size: 0.85rem;
+  font-style: italic;
+}
+
 .link-button {
   background: none;
   border: none;

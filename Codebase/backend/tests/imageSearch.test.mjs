@@ -156,14 +156,56 @@ test("rejects invalid limit values", async () => {
   }
 });
 
-test("returns configured:false when no API keys are set", async () => {
+test("falls back to built-in suggestions when no API keys are set", async () => {
   const res = await api("GET", "/images/search?ingredient=tomato", { token });
   assert.equal(res.status, 200);
   const data = await res.json();
   assert.equal(data.configured, false);
-  assert.deepEqual(data.images, []);
-  assert.equal(data.provider, "google-custom-search");
-  assert.ok(data.message);
+  assert.equal(data.provider, "fallback");
+  assert.ok(data.images.length > 0, "fallback should return suggestions");
+  // Relative path only — no host/port.
+  assert.equal(data.images[0].url, "/images/fallback/tomato.svg");
+});
+
+test("fallback returns several matches for a partial query", async () => {
+  const res = await api("GET", "/images/search?ingredient=pepper", { token });
+  const data = await res.json();
+  // Matches both "pepper" and "bell pepper".
+  assert.ok(data.images.length >= 2, "partial query should match multiple ingredients");
+});
+
+test("fallback always returns at least one suggestion for an unknown query", async () => {
+  const res = await api("GET", "/images/search?ingredient=quinoa", { token });
+  const data = await res.json();
+  assert.equal(data.provider, "fallback");
+  assert.ok(data.images.length >= 1);
+});
+
+test("fallback image route serves an SVG", async () => {
+  const res = await fetch(`${BASE}/images/fallback/tomato.svg`);
+  assert.equal(res.status, 200);
+  assert.match(res.headers.get("content-type") || "", /image\/svg\+xml/);
+  const body = await res.text();
+  assert.match(body, /<svg/);
+});
+
+test("fallback image route is public (no auth required)", async () => {
+  const res = await fetch(`${BASE}/images/fallback/onion.svg`);
+  assert.equal(res.status, 200);
+});
+
+test("a selected fallback image URL persists on the recipe", async () => {
+  // Grab a real fallback URL from the search endpoint, then save it.
+  const searchRes = await api("GET", "/images/search?ingredient=carrot", { token });
+  const { images } = await searchRes.json();
+  const fallbackUrl = images[0].url;
+  assert.equal(fallbackUrl, "/images/fallback/carrot.svg"); // relative
+
+  const recipeId = await createRecipeWithIngredientUrl(fallbackUrl);
+  const detailRes = await api("GET", `/recipes/${recipeId}`, { token });
+  const detail = await detailRes.json();
+  // The relative path is stored and returned verbatim.
+  assert.equal(detail.ingredients[0].imageUrl, fallbackUrl);
 });
 
 // --- Persistence of a selected external ingredient image ---
