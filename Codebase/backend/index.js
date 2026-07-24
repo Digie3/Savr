@@ -48,7 +48,7 @@ async function start() {
     await initLakehouse(db);
     await initDuckDB();
     //DO NOT REMOVE BELOW (it runs every min, good for testing but too many files)
-    startLakehouseScheduler();
+    //startLakehouseScheduler();
 
     const port = process.env.PORT || 4000;
 
