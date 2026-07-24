@@ -10,7 +10,11 @@ import {
   searchIngredientImages,
   clearImageSearchCache,
 } from "../services/imageService.js";
-import { isValidExternalImageUrl } from "../helpers/imageHelper.js";
+import {
+  isValidExternalImageUrl,
+  isInternalFallbackImagePath,
+  isAllowedIngredientImageUrl,
+} from "../helpers/imageHelper.js";
 
 const realFetch = global.fetch;
 
@@ -129,4 +133,24 @@ test("isValidExternalImageUrl accepts http/https and rejects everything else", (
   assert.equal(isValidExternalImageUrl(""), false);
   assert.equal(isValidExternalImageUrl(null), false);
   assert.equal(isValidExternalImageUrl(`https://x/${"a".repeat(2100)}`), false);
+  // A relative internal path is not an *external* URL.
+  assert.equal(isValidExternalImageUrl("/images/fallback/tomato.svg"), false);
+});
+
+test("isInternalFallbackImagePath accepts only well-formed fallback paths", () => {
+  assert.equal(isInternalFallbackImagePath("/images/fallback/tomato.svg"), true);
+  assert.equal(isInternalFallbackImagePath("/images/fallback/bell-pepper.svg"), true);
+
+  assert.equal(isInternalFallbackImagePath("/images/fallback/../../etc/passwd"), false);
+  assert.equal(isInternalFallbackImagePath("/images/fallback/tomato.png"), false);
+  assert.equal(isInternalFallbackImagePath("/uploads/user_1/x.jpg"), false);
+  assert.equal(isInternalFallbackImagePath("http://localhost:4000/images/fallback/tomato.svg"), false);
+  assert.equal(isInternalFallbackImagePath("/images/fallback/a b.svg"), false);
+});
+
+test("isAllowedIngredientImageUrl accepts external https and internal fallback paths", () => {
+  assert.equal(isAllowedIngredientImageUrl("https://cdn.example.com/a.jpg"), true);
+  assert.equal(isAllowedIngredientImageUrl("/images/fallback/tomato.svg"), true);
+  assert.equal(isAllowedIngredientImageUrl("javascript:alert(1)"), false);
+  assert.equal(isAllowedIngredientImageUrl("/etc/passwd"), false);
 });

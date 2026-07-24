@@ -29,7 +29,7 @@ No database schema change was required: `Media.media_url` is a text column, so a
 
 ## Environment Variables
 
-The Image Service reads its configuration from environment variables (see `Codebase/backend/.env.example`). Copy `.env.example` to `.env` and fill these in:
+The Image Service reads its configuration from environment variables (see `Codebase/backend/.env.example`). Copy `.env.example` to `.env` and set any you need (all are optional):
 
 All variables are **optional** — with none set, the service runs in fallback mode.
 
@@ -100,8 +100,8 @@ Query parameters:
   "images": [
     {
       "title": "Tomato",
-      "url": "http://localhost:4000/images/fallback/tomato.svg",
-      "thumbnailUrl": "http://localhost:4000/images/fallback/tomato.svg",
+      "url": "/images/fallback/tomato.svg",
+      "thumbnailUrl": "/images/fallback/tomato.svg",
       "source": "Savr library",
       "contextLink": null
     }
@@ -112,7 +112,7 @@ Query parameters:
 }
 ```
 
-The `images` array has the same shape in both modes, so the frontend does not need to know which mode produced them.
+Fallback URLs are **relative** (`/images/fallback/…`) — no host or port is embedded, so the stored value is portable. The frontend renders them through the existing `buildMediaUrl`/`API_BASE` logic (the same as `/uploads/…` paths). Google URLs remain absolute `https` URLs. The `images` array has the same shape in both modes, so the frontend does not need to know which mode produced them.
 
 ### Status codes
 

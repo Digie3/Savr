@@ -163,7 +163,8 @@ test("falls back to built-in suggestions when no API keys are set", async () => 
   assert.equal(data.configured, false);
   assert.equal(data.provider, "fallback");
   assert.ok(data.images.length > 0, "fallback should return suggestions");
-  assert.match(data.images[0].url, /\/images\/fallback\/tomato\.svg$/);
+  // Relative path only — no host/port.
+  assert.equal(data.images[0].url, "/images/fallback/tomato.svg");
 });
 
 test("fallback returns several matches for a partial query", async () => {
@@ -198,10 +199,12 @@ test("a selected fallback image URL persists on the recipe", async () => {
   const searchRes = await api("GET", "/images/search?ingredient=carrot", { token });
   const { images } = await searchRes.json();
   const fallbackUrl = images[0].url;
+  assert.equal(fallbackUrl, "/images/fallback/carrot.svg"); // relative
 
   const recipeId = await createRecipeWithIngredientUrl(fallbackUrl);
   const detailRes = await api("GET", `/recipes/${recipeId}`, { token });
   const detail = await detailRes.json();
+  // The relative path is stored and returned verbatim.
   assert.equal(detail.ingredients[0].imageUrl, fallbackUrl);
 });
 

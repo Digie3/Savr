@@ -52,6 +52,19 @@ export function isValidExternalImageUrl(url) {
     }
 }
 
+// Internal, relative path served by our own fallback image route
+// (GET /images/fallback/:file). Strict pattern — a single slug segment ending
+// in .svg — so no path traversal or host can be smuggled in.
+export function isInternalFallbackImagePath(url) {
+    return typeof url === "string" && /^\/images\/fallback\/[a-zA-Z0-9-]+\.svg$/.test(url);
+}
+
+// A media URL that may be stored for an ingredient: either an external
+// https/http image (Google mode) or an internal fallback path (fallback mode).
+export function isAllowedIngredientImageUrl(url) {
+    return isValidExternalImageUrl(url) || isInternalFallbackImagePath(url);
+}
+
 export function cleanupUploadedFiles(files = []) {
     for (const file of files) {
         if (!file.path) continue;

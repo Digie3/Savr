@@ -90,9 +90,12 @@ export function findFallbackMatches(query, limit) {
   return scored.slice(0, limit).map((s) => s.entry);
 }
 
-function toImage(entry, origin) {
-  const slug = slugify(entry.name);
-  const url = `${origin}/images/fallback/${slug}.svg`;
+function toImage(entry) {
+  // Relative path served by our own backend (GET /images/fallback/:file).
+  // The frontend renders it through buildMediaUrl/API_BASE, so no absolute
+  // host or port is ever stored in the database.
+  const slug = slugify(entry.name) || "ingredient";
+  const url = `/images/fallback/${slug}.svg`;
   return {
     title: titleCase(entry.name),
     url,
@@ -105,14 +108,14 @@ function toImage(entry, origin) {
 // Returns fallback image suggestions for a query. Always returns at least one
 // suggestion (a generic tile for the query term) so the user can always pick
 // something, matching the behaviour of a real search provider.
-export function getFallbackImages(query, limit, origin) {
+export function getFallbackImages(query, limit) {
   let matches = findFallbackMatches(query, limit);
 
   if (matches.length === 0) {
     matches = [{ name: (query || "ingredient").trim(), emoji: GENERIC_EMOJI }];
   }
 
-  return matches.map((entry) => toImage(entry, origin));
+  return matches.map((entry) => toImage(entry));
 }
 
 function escapeXml(value) {

@@ -35,14 +35,14 @@ test("respects the limit", () => {
 });
 
 test("getFallbackImages always returns at least one suggestion", () => {
-  const images = getFallbackImages("nonexistent-food", 6, "http://localhost:4000");
+  const images = getFallbackImages("nonexistent-food", 6);
   assert.ok(images.length >= 1);
-  assert.match(images[0].url, /^http:\/\/localhost:4000\/images\/fallback\/.+\.svg$/);
+  assert.match(images[0].url, /^\/images\/fallback\/.+\.svg$/);
 });
 
-test("getFallbackImages builds absolute URLs from the origin", () => {
-  const images = getFallbackImages("tomato", 6, "http://example.test:5000");
-  assert.equal(images[0].url, "http://example.test:5000/images/fallback/tomato.svg");
+test("getFallbackImages returns relative paths (no host or port)", () => {
+  const images = getFallbackImages("tomato", 6);
+  assert.equal(images[0].url, "/images/fallback/tomato.svg");
   assert.equal(images[0].thumbnailUrl, images[0].url);
   assert.equal(images[0].title, "Tomato");
 });

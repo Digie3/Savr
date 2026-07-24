@@ -42,8 +42,7 @@ export async function searchImages(req, res) {
     // No Google keys: fall back to built-in local image suggestions so the app
     // works out of the box. The frontend treats these like any other results.
     if (!isImageSearchConfigured()) {
-      const origin = `${req.protocol}://${req.get("host")}`;
-      const images = getFallbackImages(rawQuery, limit, origin);
+      const images = getFallbackImages(rawQuery, limit);
 
       return res.json({
         query: rawQuery,

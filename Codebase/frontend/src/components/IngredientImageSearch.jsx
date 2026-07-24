@@ -2,6 +2,7 @@ import { useState } from "react";
 
 import { useAuth } from "../auth/useAuth";
 import { searchIngredientImages } from "../lib/imageService";
+import { buildMediaUrl } from "../lib/recipes";
 
 // Per-ingredient "search the web for an image" picker.
 // Calls the backend Image Service and lets the user select one suggested image.
@@ -89,7 +90,7 @@ function IngredientImageSearch({ ingredientName, selectedImageUrl, onSelect, dis
                 title={img.title || img.source || "Suggested image"}
               >
                 <img
-                  src={img.thumbnailUrl || img.url}
+                  src={buildMediaUrl(img.thumbnailUrl || img.url)}
                   alt={img.title || `Suggested image for ${ingredientName || "ingredient"}`}
                   loading="lazy"
                 />
