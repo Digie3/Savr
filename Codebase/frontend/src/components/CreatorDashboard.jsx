@@ -31,7 +31,7 @@ function CreatorDashboard() {
     }
 
     if (!stats) {
-        return <h2>No dashboard data found.</h2>;
+        return <h2 className="dashboard-message">No dashboard data found.</h2>;
     }
 
     return (
