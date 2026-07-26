@@ -2,16 +2,37 @@ import { Link, useNavigate } from "react-router-dom";
 
 import { trackActivity } from "../lib/activity";
 
+const PASSWORD_REQUIREMENT =
+  "Password must be at least 6 characters long and include at least one uppercase letter.";
+
+function isValidNewPassword(password) {
+  return (
+    typeof password === "string" &&
+    password.length >= 6 &&
+    /[A-Z]/.test(password)
+  );
+}
+
 function Register() {
   const navigate = useNavigate();
 
   function handleRegister(event) {
     event.preventDefault();
-    
+
     const form = new FormData(event.target);
-    const username = form.get("username");
-    const password = form.get("password");
-    const confirm = form.get("confirm");
+    const username = String(form.get("username") || "").trim();
+    const password = String(form.get("password") || "");
+    const confirm = String(form.get("confirm") || "");
+
+    if (!username) {
+      alert("Username is required");
+      return;
+    }
+
+    if (!isValidNewPassword(password)) {
+      alert(PASSWORD_REQUIREMENT);
+      return;
+    }
 
     if (password !== confirm) {
       alert("Passwords must match");
@@ -23,9 +44,14 @@ function Register() {
       headers: { "Content-Type": "application/json" },
       body: JSON.stringify({ username, password }),
     })
-      .then((r) => {
-        if (!r.ok) return r.json().then((e) => Promise.reject(e));
-        return r.json();
+      .then((response) => {
+        if (!response.ok) {
+          return response
+            .json()
+            .then((error) => Promise.reject(error));
+        }
+
+        return response.json();
       })
       .then(() => {
         trackActivity({
@@ -35,9 +61,12 @@ function Register() {
           entityId: "login-after-register",
           metadata: { path: "/login" },
         });
+
         navigate("/login");
       })
-      .catch((err) => alert(err.error || "Registration failed"));
+      .catch((error) =>
+        alert(error.error || "Registration failed")
+      );
   }
 
   return (
@@ -63,10 +92,33 @@ function Register() {
         <p>Start your food journey with Savr.</p>
 
         <form onSubmit={handleRegister}>
-          <input name="username" type="text" placeholder="Username" />
+          <input
+            name="username"
+            type="text"
+            placeholder="Username"
+            required
+          />
 
-          <input name="password" type="password" placeholder="Password" />
-          <input name="confirm" type="password" placeholder="Confirm Password" />
+          <input
+            name="password"
+            type="password"
+            placeholder="Password"
+            minLength={6}
+            pattern="(?=.*[A-Z]).{6,}"
+            title={PASSWORD_REQUIREMENT}
+            required
+          />
+
+          <small className="password-requirement">
+            {PASSWORD_REQUIREMENT}
+          </small>
+
+          <input
+            name="confirm"
+            type="password"
+            placeholder="Confirm Password"
+            required
+          />
 
           <button type="submit">Register</button>
         </form>

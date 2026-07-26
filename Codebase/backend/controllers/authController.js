@@ -10,13 +10,23 @@ import {
 
 export async function register(req, res) {
     try {
-
         const db = getDB();
 
         const { username, password } = req.body || {};
 
         if (!username || !password) {
             return res.status(400).json({ error: "Missing fields" });
+        }
+
+        if (
+            typeof password !== "string" ||
+            password.length < 6 ||
+            !/[A-Z]/.test(password)
+        ) {
+            return res.status(400).json({
+                error:
+                    "Password must be at least 6 characters long and include at least one uppercase letter.",
+            });
         }
 
         await registerUser(db, username, password);
@@ -45,16 +55,19 @@ export async function register(req, res) {
 
 export async function login(req, res) {
     try {
-
         const db = getDB();
 
         const { username, password } = req.body || {};
 
-        if (!username || !password) return res.status(400).json({ error: "Missing fields" });
+        if (!username || !password) {
+            return res.status(400).json({ error: "Missing fields" });
+        }
 
         const user = await loginUser(db, username, password);
 
-        if (!user) return res.status(401).json({ error: "Invalid credentials" });
+        if (!user) {
+            return res.status(401).json({ error: "Invalid credentials" });
+        }
 
         await logActivity(db, {
             userId: user.idUsers,
@@ -65,17 +78,20 @@ export async function login(req, res) {
             metadata: { route: "/login" },
         });
 
-        // Issue a JWT the client stores and sends back on future requests.
         const token = signToken(user);
 
-        return res.json({ token, user: { id: user.idUsers, username: user.username } });
+        return res.json({
+            token,
+            user: {
+                id: user.idUsers,
+                username: user.username,
+            },
+        });
 
     } catch (err) {
-
         console.error(err);
         return res.status(500).json({ error: "Server error" });
     }
-
 }
 
 export async function me(req, res) {
@@ -83,10 +99,18 @@ export async function me(req, res) {
 
     const user = await getCurrentUser(db, req.user.id);
 
-    if (!user) return res.status(401).json({ error: "User no longer exists" });
+    if (!user) {
+        return res.status(401).json({
+            error: "User no longer exists",
+        });
+    }
 
-    return res.json({ user: { id: user.idUsers, username: user.username } });
-
+    return res.json({
+        user: {
+            id: user.idUsers,
+            username: user.username,
+        },
+    });
 }
 
 export function logout(req, res) {
