@@ -46,12 +46,6 @@ TABLES = {
     "ActivityEvents": "activity_events"
 }
 
-print("repr =", repr(DATABASE))
-print("abs  =", os.path.abspath(DATABASE))
-print("exists =", os.path.exists(DATABASE))
-print("isfile =", os.path.isfile(DATABASE))
-print("readable =", os.access(DATABASE, os.R_OK))
-
 # Connect to Database
 connection = sqlite3.connect(DATABASE)
 
