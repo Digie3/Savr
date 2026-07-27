@@ -159,26 +159,37 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 
 ## Installation
 
-> Savr is currently under active development. The instructions below describe the intended local development environment.
-
 ### Prerequisites
 
-Before running the project, ensure you have:
+#### Windows
+1. Install Install WSL 2
+* Open PowerShell as Administrator and run: wsl --install
+** Restart your computer after installation (if needed).
+*** Verify WSL 2 (ignore WSL 1 message): wsl --status
 
-* Java 21 or higher
-* Maven
-* A modern web browser
-* node.js installed
-* Python
-* Apache Spark 4.1.0,PySpark 4.1.0 && Delta Lake 4.2.0
+2. Install Docker Desktop
+* Download and install Docker Desktop.
+** Restart your computer after installation (if needed).
+*** Verify Docker Installation: docker --version
+Verify Docker Installation
 
+3. Install Git on Windows
 ---
+#### Windows
+1. Install Docker Desktop
+* Download and install Docker Desktop.
+** Restart your computer after installation (if needed).
+*** Verify Docker Installation: docker --version
+Verify Docker Installation
+
+2. Install Git on Mac
+
 
 ## Running the Application
 
 ### Clone the Repository
 
-Data LakeHouse (Only necessary for the "creator dashboard" section will not function:
+Data LakeHouse (Only necessary for the "creator dashboard" & "analysis section" will not function:
 ```text
 cd .../backend/lakehouse/etl
 python3 run_pipeline.py
