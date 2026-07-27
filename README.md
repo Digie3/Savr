@@ -47,6 +47,9 @@ Savr is being developed as a full-stack web application following a **service-ba
 * PySpark 4.1.0
 * Delta Lake 4.2.0
 
+**Platform**
+* Docker
+
 ### Core Features
 
 Users will be able to:
@@ -211,6 +214,8 @@ cd .../backend/lakehouse/etl
 python3 run_pipeline.py
 ```
 
+## NOTE: Lakehouse is setup to automatically begin updating every min (processing time is longer, expect ~2-3mins or more)
+
 ### 2. Environment Configuration
 
 The backend reads its settings from a `.env` file. Copy the provided template:
@@ -263,11 +268,9 @@ No separate database installation is required.
 
 ### Data Lakehouse
 
-Savr uses Apache Spark to process and transform the data, while Delta Lake provides the ACID transactions.
+Savr uses Apache Spark + Pyspark to process and transform the data, while Delta Lake provides the ACID transactions.
 
-Delete lakehouse data: (1) cd …/lakehouse/data, (2) rm -rf bronze silver gold
-
-Manually update lakehouse: (1) cd …/lakehouse/etl, (2) python3 run_pipeline.py
+Delete lakehouse data: Delete bronze, silver and gold folders within Database/lakehouse/data
 
 ---
 
@@ -305,6 +308,7 @@ The team uses:
 * GitHub Desktop for task tracking
 * Pull Requests for code review
 * Discord for communication and coordination
+* Docker for software compatibility 
 
 All development work should be associated with a project requirement, user story, or assigned task.
 
