@@ -163,18 +163,18 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 
 #### Windows
 1. Install Install WSL 2
-* Open PowerShell as Administrator and run: wsl --install
+* Open PowerShell as Administrator and run: ```text wsl --install ```
 
-** Restart your computer after installation (if needed).
+* Restart your computer after installation (if needed).
 
-*** Verify WSL 2 (ignore WSL 1 message): wsl --status
+* Verify WSL 2 (ignore WSL 1 message): ```text wsl --status ```
 
 2. Install Docker Desktop
 * Download and install Docker Desktop.
 
-** Restart your computer after installation (if needed).
+* Restart your computer after installation (if needed).
 
-*** Verify Docker Installation: docker --version
+* Verify Docker Installation: ```text docker --version ```
 
 3. Install Git on Windows
 ---
@@ -183,24 +183,35 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 
 * Download and install Docker Desktop.
 
-** Restart your computer after installation (if needed).
+* Restart your computer after installation (if needed).
 
-*** Verify Docker Installation: docker --version
+* Verify Docker Installation: ```text docker --version ```
 
 2. Install Git on Mac
 
 ---
 ## Running the Application
 
-### Clone the Repository
+### 1. Clone the Repository
 
-Data LakeHouse (Only necessary for the "creator dashboard" & "analysis section" will not function:
+### 1.1 Optional: Manual Update for Data Lakehouse
+
+#### Using Docker (recommended)
+
+```text
+docker compose exec backend bash
+cd /lakehouse/etl
+python3 run_pipeline.py
+```
+
+#### Not using Docker (not recommended)
+
 ```text
 cd .../backend/lakehouse/etl
 python3 run_pipeline.py
 ```
 
-### Environment Configuration
+### 2. Environment Configuration
 
 The backend reads its settings from a `.env` file. Copy the provided template:
 
@@ -216,14 +227,19 @@ cp .env.example .env
 
 See [Documentation/image-service.md](Documentation/image-service.md) for details.
 
----
+### 3. Running Docker (recommended)
+* Build & Run (if you haven't built already): ```text docker compose up --build ```
+* Close Docker Containers: ```text docker compose down ```
+* Run (if you have built already): ```text docker compose up ```
+
+### 3. Alternative: Not Running Docker (not recommended)
 
  Backend (terminal 1):
  If this is your first time running, use 'npm install' after navigating to both the backend and frontend folders.
  ```text
-cd .../backend
-node index.js
-```
+ cd .../backend
+ node index.js
+ ```
 
  Frontend (terminal 2):
 ```text
