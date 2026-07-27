@@ -164,27 +164,32 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 #### Windows
 1. Install Install WSL 2
 * Open PowerShell as Administrator and run: wsl --install
+
 ** Restart your computer after installation (if needed).
+
 *** Verify WSL 2 (ignore WSL 1 message): wsl --status
 
 2. Install Docker Desktop
 * Download and install Docker Desktop.
+
 ** Restart your computer after installation (if needed).
+
 *** Verify Docker Installation: docker --version
-Verify Docker Installation
 
 3. Install Git on Windows
 ---
 #### Windows
 1. Install Docker Desktop
+
 * Download and install Docker Desktop.
+
 ** Restart your computer after installation (if needed).
+
 *** Verify Docker Installation: docker --version
-Verify Docker Installation
 
 2. Install Git on Mac
 
-
+---
 ## Running the Application
 
 ### Clone the Repository
