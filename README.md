@@ -33,7 +33,7 @@ Savr is being developed as a full-stack web application following a **service-ba
 
 **Backend**
 
-* Java 21
+* Java 17
 * Node.js
 * Express
 
@@ -180,7 +180,9 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 
 * Verify Docker Installation: ```text docker --version ```
 
+* Note: The other softwares needed are installed using Docker build (more info below).
 
+  
 3. Install Git on Windows
 ---
 #### MacOS
@@ -192,6 +194,7 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 
 * Verify Docker Installation: ```text docker --version ```
 
+* Note: The other softwares needed are installed using Docker build (more info below).
 
 2. Install Git on Mac
 
@@ -236,7 +239,9 @@ cp .env.example .env
 See [Documentation/image-service.md](Documentation/image-service.md) for details.
 
 ### 3. Running Docker (recommended)
-* Build & Run (if you haven't built already): ```text docker compose up --build ```
+* #### Build & Run (if you haven't built already): ```text docker compose up --build ```
+* Note: Building Docker is mandatory, it installs all the software needed (outside of the prerequisite software installation).
+  
 * Close Docker Containers: ```text docker compose down ```
 * Run (if you have built already): ```text docker compose up ```
 
