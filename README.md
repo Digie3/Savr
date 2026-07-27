@@ -171,6 +171,7 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 * Restart your computer after installation (if needed).
 
 * Verify WSL 2 (ignore WSL 1 message): ```text wsl --status ```
+  
 
 2. Install Docker Desktop
 * Download and install Docker Desktop.
@@ -178,6 +179,7 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 * Restart your computer after installation (if needed).
 
 * Verify Docker Installation: ```text docker --version ```
+
 
 3. Install Git on Windows
 ---
@@ -189,6 +191,7 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 * Restart your computer after installation (if needed).
 
 * Verify Docker Installation: ```text docker --version ```
+
 
 2. Install Git on Mac
 
@@ -214,7 +217,7 @@ cd .../backend/lakehouse/etl
 python3 run_pipeline.py
 ```
 
-## NOTE: Lakehouse is setup to automatically begin updating every min (processing time is longer, expect ~2-3mins or more)
+#### NOTE: Lakehouse is setup to automatically begin updating every min (processing time is longer, expect ~2-3mins or more)
 
 ### 2. Environment Configuration
 
