@@ -16,6 +16,7 @@ Codebase/backend/node_modules/
 Codebase/frontend/node_modules/
 
 # Environment / secrets
+.env
 .env.local
 
 dist/
