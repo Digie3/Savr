@@ -10,6 +10,11 @@ const connection = db.connect();
 
 const GOLD_PATH = path.join(
     __dirname,
+    "..",
+    "..",
+    "..",
+    "Database",
+    "lakehouse",
     "data",
     "gold"
 );

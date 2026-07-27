@@ -1,5 +1,6 @@
 import fs from "fs";
 import path from "path";
+import { UPLOADS_DIR } from "../config/paths.js";
 
 export function getImageMimeType(buffer) {
     if (!buffer || buffer.length < 12) {
@@ -80,13 +81,14 @@ export function cleanupUploadedFiles(files = []) {
 }
 
 export function cleanupUploadedPaths(mediaUrls = []) {
-    const uploadsRoot = path.resolve(process.cwd(), "uploads");
+    const uploadsRoot = path.resolve(process.cwd(), UPLOADS_DIR);
 
     for (const mediaUrl of mediaUrls) {
         if (!mediaUrl || typeof mediaUrl !== "string") continue;
 
         const relativePath = mediaUrl.replace(/^\/+/, "");
-        const absolutePath = path.resolve(process.cwd(), relativePath);
+        const relativeUploadPath = relativePath.replace(/^uploads[\\/]/, "");
+        const absolutePath = path.join(UPLOADS_DIR, relativeUploadPath);
 
         if (absolutePath !== uploadsRoot && !absolutePath.startsWith(`${uploadsRoot}${path.sep}`)) {
             console.error("Skipped cleanup outside uploads directory:", mediaUrl);

@@ -1,6 +1,7 @@
 import multer from "multer";
 import fs from "fs";
 import path from "path";
+import { UPLOADS_DIR } from "../config/paths.js";
 
 const storage = multer.diskStorage({
     destination: function (req, file, cb) {
@@ -18,7 +19,7 @@ const storage = multer.diskStorage({
         }
 
         const uploadPath = path.join(
-            "uploads",
+            UPLOADS_DIR,
             `user_${userId}`,
             folder
         );

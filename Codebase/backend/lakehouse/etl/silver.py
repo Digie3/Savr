@@ -15,8 +15,7 @@ PROJECT_ROOT = os.path.abspath(
 
 BRONZE = os.path.join(
     PROJECT_ROOT,
-    "Codebase",
-    "backend",
+    "Database",
     "lakehouse",
     "data",
     "bronze"
@@ -24,8 +23,7 @@ BRONZE = os.path.join(
 
 SILVER = os.path.join(
     PROJECT_ROOT,
-    "Codebase",
-    "backend",
+    "Database",
     "lakehouse",
     "data",
     "silver"

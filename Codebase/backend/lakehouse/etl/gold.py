@@ -13,8 +13,8 @@ from spark_session import spark
 
 # Paths
 BASE = os.path.dirname(__file__)
-SILVER = os.path.join(BASE, "..", "..", "..", "..", "Codebase", "backend", "lakehouse", "data", "silver")
-GOLD = os.path.join(BASE, "..", "..", "..", "..", "Codebase", "backend", "lakehouse", "data", "gold")
+SILVER = os.path.join(BASE, "..", "..", "..", "..", "Database", "lakehouse", "data", "silver")
+GOLD = os.path.join(BASE, "..", "..", "..", "..", "Database", "lakehouse", "data", "gold")
 
 os.makedirs(GOLD, exist_ok=True)
 

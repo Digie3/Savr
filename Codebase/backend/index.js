@@ -6,6 +6,7 @@ import cors from "cors";
 import { initDB, getDB } from "./db.js";
 import { initLakehouse } from "./lakehouse/lakehouse.js";
 import { initDuckDB } from "./lakehouse/duckdb.js";
+import { UPLOADS_DIR } from "./config/paths.js";
 import { startLakehouseScheduler } from "./lakehouse/scheduler.js";
 
 // Routes
@@ -24,8 +25,7 @@ const app = express();
 
 app.use(cors());
 app.use(bodyParser.json());
-
-app.use("/uploads", express.static("uploads"));
+app.use("/uploads", express.static(UPLOADS_DIR));
 
 // Lightweight readiness probe (used by the automated test suite).
 app.get("/health", (req, res) => res.json({ status: "ok" }));

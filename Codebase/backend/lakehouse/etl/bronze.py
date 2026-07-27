@@ -17,7 +17,7 @@ BASE = os.path.dirname(__file__)
 DATABASE = os.path.join(BASE, "..", "..", "..", "..", "Database", "relational_database", "v.3.0", "recipe_social_media.db")
 
 # Bronze
-BRONZE = os.path.join(BASE, "..", "..", "..", "..", "Codebase", "backend", "lakehouse", "data", "bronze")
+BRONZE = os.path.join(BASE, "..", "..", "..", "..", "Database", "lakehouse", "data", "bronze")
 os.makedirs(BRONZE, exist_ok = True)
 
 TABLES = {
