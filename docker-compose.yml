@@ -1,0 +1,43 @@
+services:
+  backend:
+    build:
+      context: ./Codebase/backend
+
+    container_name: savr-backend
+
+    ports:
+      - "4000:4000"
+
+    volumes:
+      - ./Codebase/backend:/backend
+      - /backend/node_modules
+      - ./Database:/Database
+
+    env_file:
+      - ./Codebase/backend/.env
+
+    environment:
+      DATABASE_ROOT: /Database
+
+    command: npm start
+
+  frontend:
+    build:
+      context: ./Codebase/frontend
+
+    container_name: savr-frontend
+
+    ports:
+      - "5173:5173"
+
+    volumes:
+      - ./Codebase/frontend:/frontend
+      - /frontend/node_modules
+
+    environment:
+      VITE_API_BASE: http://localhost:4000
+
+    depends_on:
+      - backend
+
+    command: npm run dev -- --host

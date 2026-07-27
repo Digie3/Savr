@@ -14,7 +14,16 @@ from pyspark.sql.types import (
 BASE = os.path.dirname(__file__)
 
 # Database
-DATABASE = os.path.join(BASE, "..", "..", "..", "..", "Database", "relational_database", "v.3.0", "recipe_social_media.db")
+DATABASE = os.path.abspath(
+    os.path.join(
+        BASE,
+        "..", "..", "..", "..",
+        "Database",
+        "relational_database",
+        "v.3.0",
+        "recipe_social_media.db"
+    )
+)
 
 # Bronze
 BRONZE = os.path.join(BASE, "..", "..", "..", "..", "Database", "lakehouse", "data", "bronze")
@@ -36,6 +45,12 @@ TABLES = {
     "RecipeStepMedia": "recipe_step_media",
     "ActivityEvents": "activity_events"
 }
+
+print("repr =", repr(DATABASE))
+print("abs  =", os.path.abspath(DATABASE))
+print("exists =", os.path.exists(DATABASE))
+print("isfile =", os.path.isfile(DATABASE))
+print("readable =", os.access(DATABASE, os.R_OK))
 
 # Connect to Database
 connection = sqlite3.connect(DATABASE)
