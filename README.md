@@ -183,7 +183,7 @@ See [Documentation/image-service.md](Documentation/image-service.md) for setup, 
 
 3. Install Git on Windows
 ---
-#### Windows
+#### MacOS
 1. Install Docker Desktop
 
 * Download and install Docker Desktop.
@@ -217,7 +217,7 @@ cd .../backend/lakehouse/etl
 python3 run_pipeline.py
 ```
 
-#### NOTE: Lakehouse is setup to automatically begin updating every min (processing time is longer, expect ~2-3mins or more)
+#### Note: Lakehouse is setup to automatically begin updating every min (processing time is longer, expect ~2-3mins or more)
 
 ### 2. Environment Configuration
 
