@@ -220,7 +220,7 @@ cd .../backend/lakehouse/etl
 python3 run_pipeline.py
 ```
 
-#### Note: Lakehouse is setup to automatically begin updating every min (processing time is longer, expect ~2-3mins or more)
+#### Note: Lakehouse is setup to automatically begin updating every min (processing time is longer, expect 5 mins or more)
 
 ### 2. Environment Configuration
 
