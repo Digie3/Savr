@@ -30,7 +30,9 @@ const sourceDb = path.resolve(
 const PORT = 4598;
 const BASE = `http://localhost:${PORT}`;
 const stamp = Date.now();
-const USER = { username: `imguser_${stamp}`, password: "password123" };
+// Password must satisfy the backend rule (>=6 chars + an uppercase letter),
+// because this suite creates its user via the real /register endpoint.
+const USER = { username: `imguser_${stamp}`, password: "Password123" };
 
 let tempDb;
 let server;
