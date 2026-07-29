@@ -24,9 +24,9 @@ ratings = spark.read.format("delta").load(os.path.join(SILVER, "ratings_clean"))
 comments = spark.read.format("delta").load(os.path.join(SILVER, "comments_clean"))
 activity = spark.read.format("delta").load(os.path.join(SILVER, "activity_clean"))
 
-# --------------------------------------------------
+# =============
 # Creator Metrics
-# --------------------------------------------------
+# =============
 
 # Views per recipe
 recipe_views = (
@@ -90,9 +90,9 @@ creator_metrics.write \
 
 print("Creator metrics created.")
 
-# --------------------------------------------------
+# =============
 # Recipe Metrics
-# --------------------------------------------------
+# =============
 
 recipe_metrics = (
     recipes.alias("r")
@@ -204,9 +204,9 @@ creator_highest_rated.write \
 
 print("Creator highest rated recipe created.")
 
-# --------------------------------------------------
+# =============
 # Rating Summary
-# --------------------------------------------------
+# =============
 
 rating_summary = (
     ratings.groupBy("num_stars")
@@ -221,9 +221,9 @@ rating_summary.write \
 
 print("Rating summary created.")
 
-# --------------------------------------------------
+# =============
 # Engagement Metrics
-# --------------------------------------------------
+# =============
 
 engagement_metrics = (
     activity.groupBy("event_type")
@@ -240,9 +240,9 @@ engagement_metrics.write \
 
 print("Engagement metrics created.")
 
-# --------------------------------------------------
+# =============
 # Analytics Metrics
-# --------------------------------------------------
+# =============
 activity_dashboard = (
     activity
     .select(

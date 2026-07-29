@@ -3,10 +3,7 @@ import os
 from pyspark.sql.functions import col, trim, upper
 from spark_session import spark
 
-# --------------------------------------------------
 # Paths
-# --------------------------------------------------
-
 BASE = os.path.dirname(__file__)
 
 PROJECT_ROOT = os.path.abspath(
@@ -31,10 +28,7 @@ SILVER = os.path.join(
 
 os.makedirs(SILVER, exist_ok=True)
 
-# --------------------------------------------------
-# USERS
-# --------------------------------------------------
-
+# Users
 users = spark.read.format("delta").load(
     os.path.join(BRONZE, "users")
 )
@@ -52,10 +46,7 @@ users_clean.write \
 
 print("Users cleaned.")
 
-# --------------------------------------------------
-# RECIPES
-# --------------------------------------------------
-
+# Recipes
 recipes = spark.read.format("delta").load(
     os.path.join(BRONZE, "recipes")
 )
@@ -73,10 +64,7 @@ recipes_clean.write \
 
 print("Recipes cleaned.")
 
-# --------------------------------------------------
-# COMMENTS
-# --------------------------------------------------
-
+# Comments
 comments = spark.read.format("delta").load(
     os.path.join(BRONZE, "comments")
 )
@@ -93,10 +81,7 @@ comments_clean.write \
 
 print("Comments cleaned.")
 
-# --------------------------------------------------
-# RATINGS
-# --------------------------------------------------
-
+# Ratings
 ratings = spark.read.format("delta").load(
     os.path.join(BRONZE, "ratings")
 )
@@ -114,10 +99,7 @@ ratings_clean.write \
 
 print("Ratings cleaned.")
 
-# --------------------------------------------------
-# ACTIVITY EVENTS
-# --------------------------------------------------
-
+# Activity Events
 activity = spark.read.format("delta").load(
     os.path.join(BRONZE, "activity_events")
 )
@@ -134,10 +116,7 @@ activity_clean.write \
 
 print("Activity cleaned.")
 
-# --------------------------------------------------
-# RECIPE DETAILS
-# --------------------------------------------------
-
+# Recipe Details
 recipe_details = (
     recipes_clean.alias("r")
     .join(
